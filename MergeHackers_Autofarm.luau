@@ -2385,6 +2385,39 @@ local function setupInterface()
 		end
 		MenuGroup:AddToggle("AntiGameplayPause", { Text = "No Gameplay Paused", Default = true })
 		MenuGroup:AddToggle("AutoReconnect", { Text = "Auto Reconnect on Kick", Default = false })
+		local blackout = nil
+		local function setBlackout(enabled)
+			restoreIdentity()
+			if not enabled then
+				if blackout then
+					pcall(function()
+						blackout:Destroy()
+					end)
+					blackout = nil
+				end
+				return
+			end
+			if blackout and blackout.Parent then
+				return
+			end
+			pcall(function()
+				local container = (callable(gethui) and gethui()) or CoreGui
+				local screen = Instance.new("ScreenGui")
+				screen.Name = "OuroborosBlackout"
+				screen.IgnoreGuiInset = true
+				screen.ResetOnSpawn = false
+				screen.DisplayOrder = 997
+				screen.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+				local frame = Instance.new("Frame")
+				frame.Size = UDim2.fromScale(1, 1)
+				frame.BackgroundColor3 = Color3.fromHex("#000000")
+				frame.BackgroundTransparency = 0
+				frame.BorderSizePixel = 0
+				frame.Parent = screen
+				screen.Parent = container
+				blackout = screen
+			end)
+		end
 		MenuGroup:AddToggle("Disable3D", {
 			Text = "Disable 3D Rendering",
 			Default = false,
@@ -2392,6 +2425,7 @@ local function setupInterface()
 				pcall(function()
 					RunService:Set3dRenderingEnabled(not value)
 				end)
+				setBlackout(value)
 			end,
 		})
 		MenuGroup:AddToggle("FpsBoost", {
@@ -2528,6 +2562,7 @@ local function setupInterface()
 			pcall(function()
 				RunService:Set3dRenderingEnabled(true)
 			end)
+			setBlackout(false)
 		end)
 	end
 	setupSettings()
