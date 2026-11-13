@@ -1,0 +1,13 @@
+[package]
+name = "noesis"
+description = "Noesis desktop app and command-line interface"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "noesis"
+path = "src/main.rs"
+
+[dependencies]
+noesis-engine = { path = "../engine" }

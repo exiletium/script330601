@@ -1,0 +1,32 @@
+[package]
+name = "noesis-engine"
+description = "Noesis computational knowledge engine: computer algebra, numerics on CPU/GPU, units, science and reference data"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "noesis"
+path = "src/lib.rs"
+
+[dependencies]
+astro-float = "0.9.6"
+bytemuck = { version = "1.25.2", features = ["derive"], optional = true }
+chrono = "0.4.45"
+chrono-tz = "0.10.4"
+num-bigint = "0.4"
+num-complex = "0.4.6"
+num-integer = "0.1.47"
+num-rational = "0.4.2"
+num-traits = "0.2.19"
+pollster = { version = "1.0.1", optional = true }
+rayon = "1.12.0"
+regex = "1.13.1"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+statrs = "0.19.1"
+wgpu = { version = "24", optional = true }
+
+[features]
+default = ["gpu"]
+gpu = ["dep:wgpu", "dep:pollster", "dep:bytemuck"]
