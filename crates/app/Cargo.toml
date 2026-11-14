@@ -4,6 +4,7 @@ description = "Noesis desktop app and command-line interface"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+default-run = "noesis"
 
 [lib]
 name = "noesis_app"
