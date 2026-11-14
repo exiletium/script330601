@@ -1,5 +1,6 @@
 //! Noesis computational engine.
 pub mod budget;
+pub mod calculus;
 pub mod eval;
 pub mod expr;
 pub mod funcs;
@@ -10,3 +11,4 @@ pub mod poly;
 pub mod print;
 pub mod simplify;
 pub mod special;
+pub mod steps;

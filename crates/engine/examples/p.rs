@@ -19,6 +19,14 @@ fn main() {
                     "a" => s::apart(&p.expr, &sym("x")).unwrap_or(noesis::expr::undef()),
                     "t" => s::trig_reduce(&p.expr),
                     "x" => s::trig_expand(&p.expr),
+                    "d" => noesis::calculus::doit(&p.expr),
+                    "k" => s::factor_terms(&s::cancel(&p.expr)),
+                    "D" => { println!("{:?}", p.expr); p.expr.clone() }
+                    "i" => noesis::calculus::integrate::integrate(&p.expr, &sym("x")).unwrap_or(noesis::expr::undef()),
+                    "S" => match noesis::calculus::series(&p.expr, &sym("x"), &noesis::expr::zero(), 6) {
+                        Some(ex) => noesis::expr::add(vec![ex.poly, ex.big_o.map_or(noesis::expr::zero(), |o| noesis::expr::raw_fn("O", vec![o]))]),
+                        None => noesis::expr::undef(),
+                    },
                     _ => p.expr.clone(),
                 });
                 match r {

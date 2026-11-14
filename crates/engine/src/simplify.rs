@@ -891,6 +891,154 @@ fn simplify_args(e: &Expr) -> Expr {
     }
 }
 
+/// Pull the rational content out of sums inside products:
+/// `e^x (-x/2 - 1/2)` -> `-(e^x (x + 1))/2`.
+pub fn pull_content(e: &Expr) -> Expr {
+    match e {
+        Add(v) => add(v.iter().map(pull_content).collect()),
+        Mul(v) => {
+            let mut coef = Rat::one();
+            let mut fs = Vec::with_capacity(v.len());
+            for f in v {
+                let f = pull_content(f);
+                match &f {
+                    Add(ts) => {
+                        let (g, sign) = sum_content(ts);
+                        if g.is_one() && !sign {
+                            fs.push(f);
+                        } else {
+                            let k = if sign { -g.clone() } else { g.clone() };
+                            coef *= k.clone();
+                            let inv = Num(k.recip());
+                            fs.push(add(ts.iter().map(|t| mul(vec![inv.clone(), t.clone()])).collect()));
+                        }
+                    }
+                    _ => fs.push(f),
+                }
+            }
+            fs.push(Num(coef));
+            raw_mul_keep(fs)
+        }
+        Pow(b, ex) => pow(pull_content(b), (**ex).clone()),
+        Func(n, a) => func(n, a.iter().map(pull_content).collect()),
+        _ => e.clone(),
+    }
+}
+
+/// Factor common factors (and numeric content) out of sums, recursively:
+/// `-e^x x - e^x` -> `-e^x (x + 1)`.
+pub fn factor_terms(e: &Expr) -> Expr {
+    match e {
+        Add(v) => {
+            let ts: Vec<Expr> = v.iter().map(factor_terms).collect();
+            // candidate common bases with their minimal integer exponent
+            let first = ts[0].factors();
+            let mut common: Vec<(Expr, Int)> = Vec::new();
+            for f in &first {
+                if f.is_numeric() {
+                    continue;
+                }
+                let (b, k) = int_base_exp(f);
+                if k <= Int::zero() {
+                    continue;
+                }
+                let mut m = k;
+                let mut ok = true;
+                for t in &ts[1..] {
+                    let found = t.factors().iter().find_map(|g| {
+                        let (gb, gk) = int_base_exp(g);
+                        if gb == b {
+                            Some(gk)
+                        } else {
+                            None
+                        }
+                    });
+                    match found {
+                        Some(j) if j > Int::zero() => m = m.min(j),
+                        _ => {
+                            ok = false;
+                            break;
+                        }
+                    }
+                }
+                if ok && !common.iter().any(|(c, _)| *c == b) {
+                    common.push((b, m));
+                }
+            }
+            if common.is_empty() {
+                return pull_content(&add(ts));
+            }
+            let cf: Vec<Expr> = common.iter().map(|(b, k)| pow(b.clone(), big(k.clone()))).collect();
+            let inv = mul(cf.iter().map(|f| pow(f.clone(), int(-1))).collect());
+            let rest = add(ts.iter().map(|t| mul(vec![t.clone(), inv.clone()])).collect());
+            let mut fs = cf;
+            fs.push(rest);
+            pull_content(&raw_mul_keep(fs))
+        }
+        Mul(v) => pull_content(&mul(v.iter().map(factor_terms).collect())),
+        Pow(b, ex) => pow(factor_terms(b), (**ex).clone()),
+        Func(n, a) => func(n, a.iter().map(factor_terms).collect()),
+        _ => e.clone(),
+    }
+}
+
+/// `b^k` with integer k as `(b, k)`; anything else as `(self, 1)`.
+fn int_base_exp(f: &Expr) -> (Expr, Int) {
+    if let Pow(b, k) = f {
+        if let Some(k) = k.as_int() {
+            return ((**b).clone(), k.clone());
+        }
+    }
+    (f.clone(), Int::one())
+}
+
+/// Polynomial in its symbols (no functions, radicals or denominators)?
+fn is_plain_poly(e: &Expr) -> bool {
+    match e {
+        Num(_) | Sym(_) => true,
+        Add(v) | Mul(v) => v.iter().all(is_plain_poly),
+        Pow(b, k) => matches!(k.as_i64(), Some(n) if n >= 0) && is_plain_poly(b),
+        _ => false,
+    }
+}
+
+/// Multiply without letting the numeric coefficient distribute back into a
+/// lone sum.
+fn raw_mul_keep(fs: Vec<Expr>) -> Expr {
+    let m = mul(fs.clone());
+    match &m {
+        Add(_) if fs.iter().filter(|f| !f.is_numeric()).count() == 1 => {
+            let c: Vec<Expr> = fs.iter().filter(|f| f.is_numeric()).cloned().collect();
+            let rest: Vec<Expr> = fs.into_iter().filter(|f| !f.is_numeric()).collect();
+            let c = mul(c);
+            if c.is_one() {
+                rest[0].clone()
+            } else {
+                Mul(vec![c, rest[0].clone()])
+            }
+        }
+        _ => m,
+    }
+}
+
+/// Rational gcd of the numeric coefficients of a sum and whether the leading
+/// (highest-ordered) term is negative.
+fn sum_content(ts: &[Expr]) -> (Rat, bool) {
+    let mut num = Int::zero();
+    let mut den = Int::one();
+    for t in ts {
+        let (c, _) = t.coeff_split();
+        let Some(r) = c.as_rat() else { return (Rat::one(), false) };
+        num = num.gcd(r.numer());
+        den = den.lcm(r.denom());
+    }
+    if num.is_zero() {
+        return (Rat::one(), false);
+    }
+    let all_neg = ts.iter().all(|t| t.is_negative_term());
+    (Rat::new(num, den), all_neg)
+}
+
 /// General-purpose simplification: tries several rewrites and keeps the
 /// smallest result.
 pub fn simplify(e: &Expr) -> Expr {
@@ -950,6 +1098,15 @@ pub fn simplify(e: &Expr) -> Expr {
             out.push(combine_log(&el));
             out.push(el);
             out.push(cl);
+        }
+        for base in [&e1, &c1] {
+            if is_plain_poly(&expand(base)) {
+                continue;
+            }
+            let pc = factor_terms(base);
+            if pc != *base {
+                out.push(pc);
+            }
         }
         out.push(c1);
         out
