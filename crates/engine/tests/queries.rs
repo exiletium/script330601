@@ -118,6 +118,29 @@ fn step_by_step() {
     assert!(pod_text(&r, "Steps").contains("product rule"));
     let r = q("x^2 - 5x + 6 = 0");
     assert!(pod_text(&r, "SolutionSteps").contains("quadratic formula"));
+    // limits
+    let st = pod_text(&q("limit of sin(x)/x as x->0"), "Steps");
+    assert!(st.contains("L'Hôpital"), "{st}");
+    let st = pod_text(&q("limit (x^2-1)/(x-1) as x->1"), "Steps");
+    assert!(st.contains("Cancel the common factor"), "{st}");
+    let st = pod_text(&q("limit (1+1/x)^x as x->infinity"), "Steps");
+    assert!(st.contains("logarithms"), "{st}");
+    let r = q("limit 1/x as x->0");
+    assert!(r.pods.iter().any(|p| p.id == "OneSided"));
+    // sums
+    let st = pod_text(&q("sum k^2 from k=1 to n"), "Steps");
+    assert!(st.contains("power-sum"), "{st}");
+    let st = pod_text(&q("sum 1/2^k from k=0 to infinity"), "Steps");
+    assert!(st.contains("geometric"), "{st}");
+    let st = pod_text(&q("sum 1/(k(k+1)) from k=1 to infinity"), "Steps");
+    assert!(st.contains("telescopes"), "{st}");
+    // equations
+    let st = pod_text(&q("solve 2 e^(3x) = 10"), "SolutionSteps");
+    assert!(st.contains("Take logarithms"), "{st}");
+    let st = pod_text(&q("solve sqrt(x+3) = x - 3"), "SolutionSteps");
+    assert!(st.contains("extraneous ✗") && st.contains("valid ✓"), "{st}");
+    let st = pod_text(&q("solve x^3 - 6x^2 + 11x - 6 = 0"), "SolutionSteps");
+    assert!(st.contains("Factor the polynomial"), "{st}");
 }
 
 #[test]

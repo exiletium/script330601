@@ -1007,11 +1007,17 @@ pub fn equation_pods(p: &Parsed, a: &Expr, b: &Expr, opts: &Options) -> Vec<Pod>
         }
         {
             let (f, x, want_steps) = (f.clone(), x.clone(), opts.steps);
+            let (a2, b2) = (a.clone(), b.clone());
             jobs.push(job(move || {
                 let mut out = solution_pods(&f, &x)?;
                 if want_steps {
                     if let Some(st) = quadratic_steps(&f, &x) {
                         out.push(pod("SolutionSteps", "Solution · step by step", steps_content(&st)));
+                    } else {
+                        let st = super::explain::equation_steps(&a2, &b2, &x);
+                        if !st.is_empty() {
+                            out.push(pod("SolutionSteps", "Solution · step by step", steps_content(&st)));
+                        }
                     }
                 }
                 Some(out)
@@ -1407,10 +1413,43 @@ pub fn calculus_pods(p: &Parsed, opts: &Options) -> Vec<Pod> {
         }
     }
     let unevaluated = result.has(&|n| matches!(n, Func(name, _) if matches!(&**name, "Integral" | "Limit" | "Sum" | "Product")));
+    // limit and sum steps
+    if want_steps && st.is_empty() && !unevaluated {
+        if let Func(n, a) = &e {
+            match (&**n, a.len()) {
+                ("Limit", 3) => st = super::explain::limit_steps(&a[0], &a[1], &a[2], calculus::Dir::Both),
+                ("Limit", 4) => st = super::explain::limit_steps(&a[0], &a[1], &a[2], if a[3].is_negative_term() { calculus::Dir::Left } else { calculus::Dir::Right }),
+                ("Sum", 4) => st = super::explain::sum_steps(&a[0], &a[1], &a[2], &a[3]),
+                _ => {}
+            }
+        }
+    }
     if unevaluated {
         // explain why
-        let msg = explain_failure(&e);
+        let mut msg = explain_failure(&e);
+        if let Func(n, a) = &e {
+            if &**n == "Limit" && a.len() == 3 {
+                let side = |d| calculus::limit(&a[0], &a[1], &a[2], d);
+                if let (Some(l), Some(r)) = (side(calculus::Dir::Left), side(calculus::Dir::Right)) {
+                    if l != r {
+                        msg = "The two-sided limit does not exist: the one-sided limits differ.".into();
+                    }
+                }
+            }
+        }
         pods.push(primary(pod("Result", "Result", text(msg))));
+        if let Func(n, a) = &e {
+            if &**n == "Limit" && a.len() == 3 {
+                let side = |d| calculus::limit(&a[0], &a[1], &a[2], d);
+                if let (Some(l), Some(r)) = (side(calculus::Dir::Left), side(calculus::Dir::Right)) {
+                    let hold = |sg: i64| raw_fn("Limit", vec![a[0].clone(), a[1].clone(), a[2].clone(), int(sg)]);
+                    pods.push(pod_multi("OneSided", "One-sided limits", vec![("from the left".into(), math(&eq(hold(-1), l))), ("from the right".into(), math(&eq(hold(1), r)))]));
+                    if let Some(pl) = a[2].to_f64_const().and_then(|c| pl::cartesian(std::slice::from_ref(&a[0]), &a[1], Some((c - 2.0, c + 2.0)))) {
+                        pods.push(pod("Plot", "Plot", plot(pl)));
+                    }
+                }
+            }
+        }
         return pods;
     }
     let result = if matches!(&e, Func(n, _) if &**n == "Integral") && e.as_list().is_none() {

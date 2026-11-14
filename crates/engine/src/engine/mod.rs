@@ -4,6 +4,7 @@
 pub mod math;
 pub mod commands;
 pub mod ode;
+pub mod explain;
 
 use crate::budget;
 use crate::expr::Expr;

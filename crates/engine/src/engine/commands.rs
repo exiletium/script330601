@@ -186,7 +186,7 @@ pub fn handle(q: &Query) -> Option<Answer> {
         return holder_answer(h.clone(), d_of(&h), q);
     }
     // ------------------------------------------------------------ sums
-    if let Some(m) = cap(re!(r"^(sum|product)\s+(?:of\s+)?(.+?)\s*,?\s+(?:for\s+)?([a-z])\s*=\s*(.+?)\s+(?:to|\.\.)\s+(.+)$")) {
+    if let Some(m) = cap(re!(r"^(sum|product)\s+(?:of\s+)?(.+?)\s*,?\s+(?:for\s+|from\s+|where\s+|with\s+)?([a-z])\s*(?:=|from|goes from|ranges from)\s*(.+?)\s*(?:to|\.\.+|until|through)\s*(.+)$")) {
         let f = ex(m[2].as_deref()?)?;
         let holder = if m[1].as_deref()?.to_lowercase() == "sum" { "Sum" } else { "Product" };
         let h = raw_fn(holder, vec![f, sym(m[3].as_deref()?), bound(m[4].as_deref()?)?, bound(m[5].as_deref()?)?]);
