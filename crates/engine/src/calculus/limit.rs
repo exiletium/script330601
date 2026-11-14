@@ -432,3 +432,111 @@ pub fn tidy_float(v: f64) -> Expr {
     }
     float(v)
 }
+
+// ---------------------------------------------------------------------------
+// limits of functions of several variables
+// ---------------------------------------------------------------------------
+
+#[derive(Clone, Debug)]
+pub enum MultiLimit {
+    /// The limit exists; `proof` explains why.
+    Value { value: Expr, proof: String },
+    /// Two approaches give different results.
+    DoesNotExist { paths: Vec<(String, Option<Expr>)> },
+    /// Every tested path agrees, but no proof was found.
+    Likely { value: Expr, paths: Vec<(String, Option<Expr>)> },
+    Unknown,
+}
+
+fn bounded_trig(e: &Expr, th: &Expr) -> bool {
+    match e {
+        _ if !e.has_sym(th) => e.free_symbols().is_empty() || true,
+        Func(n, a) if matches!(&**n, "sin" | "cos") => a.len() == 1,
+        Add(v) | Mul(v) => v.iter().all(|t| bounded_trig(t, th)),
+        Pow(b, k) => k.as_i64().map_or(false, |k| k >= 0) && bounded_trig(b, th),
+        _ => false,
+    }
+}
+
+/// lim f(x, y) as (x, y) → (a, b).
+pub fn limit_multi(f: &Expr, vars: &[Expr], point: &[Expr]) -> MultiLimit {
+    if vars.len() != 2 || point.len() != 2 {
+        return MultiLimit::Unknown;
+    }
+    let (x, y) = (&vars[0], &vars[1]);
+    let (a, b) = (&point[0], &point[1]);
+    // continuity: direct substitution
+    let (_, den) = crate::simplify::numer_denom(&crate::simplify::together(f));
+    let den_at = crate::simplify::simplify(&den.subs(x, a).subs(y, b));
+    let den_ok = !bad(&den_at) && !den_at.is_zero() && den_at.to_f64_const().map_or(true, |v| v.abs() > 1e-300);
+    let direct = crate::simplify::simplify(&f.subs(x, a).subs(y, b));
+    let no_neg_powers = !f.has(&|n| matches!(n, Pow(base, k) if k.is_negative_term() && base.has_sym(x) | base.has_sym(y) && crate::simplify::simplify(&(**base).subs(x, a).subs(y, b)).is_zero()));
+    if den_ok && no_neg_powers && !bad(&direct) && !f.has_any_fn(DISCONTINUOUS) {
+        return MultiLimit::Value { value: direct, proof: "The function is continuous at the point, so the limit equals its value there.".into() };
+    }
+    // shift to the origin
+    let (u, v) = (sym("\u{3b7}u"), sym("\u{3b7}v"));
+    let g = f.subs(x, &add(vec![a.clone(), u.clone()])).subs(y, &add(vec![b.clone(), v.clone()]));
+    let t = sym("\u{3b7}t");
+    let xs = crate::print::text(&sub(x.clone(), a.clone()));
+    let ys = crate::print::text(&sub(y.clone(), b.clone()));
+    let path_lim = |gu: Expr| -> Option<Expr> {
+        let l = limit(&gu, &t, &zero(), Dir::Right)?;
+        let r = limit(&gu, &t, &zero(), Dir::Left)?;
+        if same(&l, &r) {
+            Some(l)
+        } else {
+            None
+        }
+    };
+    let mut paths: Vec<(String, Option<Expr>)> = Vec::new();
+    let mut add_path = |label: String, uu: Expr, vv: Expr| {
+        let gu = crate::simplify::simplify(&g.subs(&u, &uu).subs(&v, &vv));
+        paths.push((label, path_lim(gu)));
+    };
+    let dx = sub(x.clone(), a.clone());
+    let dy = sub(y.clone(), b.clone());
+    let lbl = |l: Expr, r: Expr| format!("along {}", crate::print::text(&eq(l, r)));
+    add_path(lbl(dy.clone(), zero()), t.clone(), zero());
+    add_path(lbl(dx.clone(), zero()), zero(), t.clone());
+    for m in [1i64, -1, 2] {
+        add_path(lbl(dy.clone(), mul(vec![int(m), dx.clone()])), t.clone(), mul(vec![int(m), t.clone()]));
+    }
+    add_path(lbl(dy.clone(), square(dx.clone())), t.clone(), square(t.clone()));
+    add_path(lbl(dx.clone(), square(dy.clone())), square(t.clone()), t.clone());
+    // general line y = m x with symbolic slope
+    let mslope = sym("m");
+    let line = crate::simplify::simplify(&g.subs(&u, &t).subs(&v, &mul(vec![mslope.clone(), t.clone()])));
+    let line_lim = limit(&line, &t, &zero(), Dir::Right);
+    let defined: Vec<&Expr> = paths.iter().filter_map(|p| p.1.as_ref()).collect();
+    let disagree = paths.iter().any(|p| p.1.is_none()) || defined.windows(2).any(|w| !same(w[0], w[1]));
+    if let Some(l) = &line_lim {
+        if l.has_sym(&mslope) {
+            let mut ps = paths.clone();
+            ps.push((format!("along {} (slope m)", crate::print::text(&eq(sub(y.clone(), b.clone()), mul(vec![mslope.clone(), sub(x.clone(), a.clone())])))), Some(l.clone())));
+            return MultiLimit::DoesNotExist { paths: ps };
+        }
+    }
+    if disagree {
+        return MultiLimit::DoesNotExist { paths };
+    }
+    let Some(cand) = defined.first().map(|e| (*e).clone()) else { return MultiLimit::Unknown };
+    // polar proof: |g - L| ≤ C r^p, p > 0
+    let (r, th) = (sym("\u{3b7}r"), sym("θ"));
+    let gp = crate::simplify::simplify(&sub(g.subs(&u, &mul(vec![r.clone(), f1("cos", th.clone())])).subs(&v, &mul(vec![r.clone(), f1("sin", th.clone())])), cand.clone()));
+    if gp.is_zero() {
+        return MultiLimit::Value { value: cand, proof: "In polar coordinates the function is constant.".into() };
+    }
+    if let Some((c, p)) = super::series::leading_term(&gp, &r) {
+        use num_traits::Signed;
+        if c.is_zero() || (p.is_positive() && bounded_trig(&c, &th) && !c.has_sym(&sym(super::series::LOGH))) {
+            let proof = format!(
+                "In polar coordinates ({xs} = r cos θ, {ys} = r sin θ), f − {} behaves like r^{} times a bounded function of θ, which tends to 0 as r → 0 for every θ.",
+                crate::print::text(&cand),
+                crate::print::text(&Num(p))
+            );
+            return MultiLimit::Value { value: cand, proof };
+        }
+    }
+    MultiLimit::Likely { value: cand, paths }
+}

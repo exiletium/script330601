@@ -90,6 +90,16 @@ fn knowledge_domains() {
 }
 
 #[test]
+fn multivariable_limits() {
+    assert_eq!(short("lim (x,y)->(0,0) y/x"), "The limit does not exist.");
+    assert_eq!(short("limit of x y/(x^2+y^2) as (x,y)->(0,0)"), "The limit does not exist.");
+    assert_eq!(short("limit x y^2/(x^2+y^4) as (x,y)->(0,0)"), "The limit does not exist.");
+    assert_eq!(short("limit x^2 y/(x^2+y^2) as (x,y) -> (0,0)"), "0");
+    assert_eq!(short("limit sin(x^2+y^2)/(x^2+y^2) as (x,y)->(0,0)"), "1");
+    assert_eq!(short("limit (x^2+y^2) as (x,y)->(1,2)"), "5");
+}
+
+#[test]
 fn laplace_transforms() {
     assert_eq!(short("laplace transform of t^2 e^t"), "ℒ(e^t t^2) = 2/(s - 1)^3");
     assert_eq!(short("laplace transform of sin(3t)"), "ℒ(sin(3 t)) = 3/(s^2 + 9)");

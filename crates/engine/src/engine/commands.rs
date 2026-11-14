@@ -105,6 +105,62 @@ pub fn handle(q: &Query) -> Option<Answer> {
         let h = raw_fn("Integral", vec![f, x, bound(m[2].as_deref()?)?, bound(m[3].as_deref()?)?]);
         return holder_answer(h.clone(), d_of(&h), q);
     }
+    // ------------------------------------------------- multivariable limits
+    let multi = cap(re!(r"^lim(?:it)?\s*(?:of\s+)?(.+?)\s+as\s+\(\s*([a-z])\s*,\s*([a-z])\s*\)\s*(?:->|→|approaches|goes to|tends to|to)\s*\(\s*(.+?)\s*,\s*(.+?)\s*\)$"))
+        .map(|m| (m[1].clone(), m[2].clone(), m[3].clone(), m[4].clone(), m[5].clone()))
+        .or_else(|| cap(re!(r"^lim(?:it)?\s*_?\(?\s*\(\s*([a-z])\s*,\s*([a-z])\s*\)\s*(?:->|→)\s*\(\s*(.+?)\s*,\s*(.+?)\s*\)\s*\)?\s+(.+)$")).map(|m| (m[5].clone(), m[1].clone(), m[2].clone(), m[3].clone(), m[4].clone())));
+    if let Some((fs, xs, ys, a, b)) = multi {
+        let f = ex(fs.as_deref()?)?;
+        let (x, y) = (sym(xs.as_deref()?), sym(ys.as_deref()?));
+        let (a, b) = (bound(a.as_deref()?)?, bound(b.as_deref()?)?);
+        let pt = raw_fn("Tuple", vec![List(vec![a.clone(), b.clone()])]);
+        let vars = raw_fn("Tuple", vec![List(vec![x.clone(), y.clone()])]);
+        let shown = format!("lim_({}→{}) {}", ptext(&vars), ptext(&pt), ptext(&f));
+        let mut pods = vec![pod("Input", "Input", text(shown.clone()))];
+        let path_rows = |paths: &[(String, Option<Expr>)]| -> Content {
+            table(Some(vec!["approach", "limit"]), paths.iter().map(|(p, v)| vec![text(p.clone()), match v { Some(Const(K::CInf)) => text("unbounded"), Some(v) => math(v), None => text("does not exist") }]).collect())
+        };
+        match calculus::limit::limit_multi(&f, &[x.clone(), y.clone()], &[a, b]) {
+            calculus::limit::MultiLimit::Value { value, proof } => {
+                pods.push(primary(pod("Result", "Result", math(&value))));
+                pods.push(pod("Steps", "Explanation", text(proof)));
+            }
+            calculus::limit::MultiLimit::DoesNotExist { paths } => {
+                pods.push(primary(pod("Result", "Result", text("The limit does not exist."))));
+                let mut seen: Vec<String> = Vec::new();
+                let why = paths
+                    .iter()
+                    .filter_map(|(p, v)| {
+                        let val = match v {
+                            Some(Const(K::CInf)) | None => "unbounded or undefined".to_string(),
+                            Some(v) => ptext(v),
+                        };
+                        if seen.contains(&val) {
+                            return None;
+                        }
+                        seen.push(val.clone());
+                        Some(format!("{p} the limit is {val}"))
+                    })
+                    .take(2)
+                    .collect::<Vec<_>>()
+                    .join(", but ");
+                pods.push(pod("Steps", "Explanation", text(format!("The value depends on the direction of approach: {why}. A limit must be the same along every path."))));
+                pods.push(pod("Paths", "Limits along paths", path_rows(&paths)));
+            }
+            calculus::limit::MultiLimit::Likely { value, paths } => {
+                pods.push(primary(pod("Result", "Result", math(&value))));
+                pods.push(pod("Note", "Note", text("Every tested path gives this value, but Noesis could not prove that the limit exists.")));
+                pods.push(pod("Paths", "Limits along paths", path_rows(&paths)));
+            }
+            calculus::limit::MultiLimit::Unknown => {
+                pods.push(primary(pod("Result", "Result", text("The limit could not be determined."))));
+            }
+        }
+        if let Some(sp) = pl::surface(&f, &x, &y, (-1.0, 1.0), (-1.0, 1.0), 64, pl::PlotKind::Surface) {
+            pods.push(pod("3DPlot", "3D plot near the point", plot(sp)));
+        }
+        return Some(Answer::new(shown, pods));
+    }
     // --------------------------------------------------------------- limits
     if let Some(m) = cap(re!(r"^lim(?:it)?\s*(?:of\s+)?(.+?)\s+(?:as\s+)?([a-z])\s*(?:->|→|approaches|goes to|tends to|to)\s*(.+?)(?:\s*(?:from (?:the )?(left|right|above|below))|([+-]))?$")) {
         let f = ex(m[1].as_deref()?)?;
