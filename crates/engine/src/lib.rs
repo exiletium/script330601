@@ -10,5 +10,6 @@ pub mod parse;
 pub mod poly;
 pub mod print;
 pub mod simplify;
+pub mod solve;
 pub mod special;
 pub mod steps;

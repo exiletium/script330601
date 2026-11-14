@@ -459,6 +459,27 @@ pub fn call_d(name: &str, mut args: Vec<D>) -> D {
         ("Derivative", 2) => D::Deriv { body: tk(&mut args, 0), var: tk(&mut args, 1), order: one() },
         ("Derivative", 3) => D::Deriv { body: tk(&mut args, 0), var: tk(&mut args, 1), order: tk(&mut args, 2) },
         ("not", 1) => D::Prefix("¬".into(), tk(&mut args, 0)),
+        ("Or", _) => {
+            let mut it = args.into_iter();
+            let mut acc = it.next().unwrap_or(D::Text(String::new()));
+            for x in it {
+                acc = D::Infix(Box::new(acc), "or".into(), Box::new(x));
+            }
+            acc
+        }
+        ("And", 2) => {
+            // a < x ∧ x < b  ->  a < x < b
+            let b2 = args.pop().unwrap();
+            let a2 = args.pop().unwrap();
+            match (a2, b2) {
+                (D::Rel(mut p1, mut o1), D::Rel(p2, o2)) if p1.len() == 2 && p2.len() == 2 && d_text(&p1[1]) == d_text(&p2[0]) => {
+                    p1.push(p2[1].clone());
+                    o1.extend(o2);
+                    D::Rel(p1, o1)
+                }
+                (a2, b2) => D::Infix(Box::new(a2), "and".into(), Box::new(b2)),
+            }
+        }
         ("and" | "or" | "xor" | "implies" | "iff", k) if k >= 2 => {
             let op = match name {
                 "and" => "∧",
