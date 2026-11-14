@@ -9,6 +9,8 @@ Type a calculation, an equation, a function, a question in plain English or a un
 | 3-D surface, rotatable | Welcome screen (light theme) |
 | --- | --- |
 | ![Surface plot](docs/screenshots/surface-dark.png) | ![Welcome](docs/screenshots/welcome-light.png) |
+| **Step-by-step derivative** | **Initial value problem** |
+| ![Steps](docs/screenshots/steps-light.png) | ![ODE](docs/screenshots/ode-dark.png) |
 
 ## What it can do
 
