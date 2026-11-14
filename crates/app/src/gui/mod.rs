@@ -94,7 +94,6 @@ pub struct App {
     search: String,
     search_open: bool,
     settings_open: bool,
-    examples_open: bool,
     tx: Sender<(u64, QueryResult)>,
     rx: Receiver<(u64, QueryResult)>,
     plots: plotview::States,
@@ -148,7 +147,6 @@ impl App {
             search: String::new(),
             search_open: false,
             settings_open: false,
-            examples_open: false,
             tx,
             rx,
             plots: Default::default(),
@@ -290,7 +288,7 @@ impl eframe::App for App {
             } else {
                 let msg = msg.clone();
                 egui::Area::new("toast".into()).anchor(Align2::CENTER_TOP, vec2(0.0, 70.0)).show(ctx, |ui| {
-                    egui::Frame::new().fill(pal.raised).stroke(Stroke::new(1.0, pal.border)).corner_radius(CornerRadius::same(10)).inner_margin(Margin::symmetric(14, 8)).show(ui, |ui| {
+                    egui::Frame::new().fill(pal.raised).stroke(Stroke::new(1.0_f32, pal.border)).corner_radius(CornerRadius::same(10)).inner_margin(Margin::symmetric(14, 8)).show(ui, |ui| {
                         ui.label(RichText::new(msg).color(pal.text));
                     });
                 });
@@ -330,14 +328,14 @@ impl App {
     fn sidebar(&mut self, ctx: &egui::Context, pal: &Palette) {
         egui::SidePanel::left("sidebar").resizable(false).show_separator_line(false).exact_width(292.0).frame(egui::Frame::new().fill(pal.sidebar).inner_margin(Margin { left: 14, right: 14, top: 14, bottom: 12 })).show(ctx, |ui| {
             let full = ui.max_rect().expand2(vec2(14.0, 14.0));
-            ui.painter().line_segment([full.right_top(), full.right_bottom()], Stroke::new(1.0, pal.border));
+            ui.painter().line_segment([full.right_top(), full.right_bottom()], Stroke::new(1.0_f32, pal.border));
             // brand row
             ui.horizontal(|ui| {
                 let (r, _) = ui.allocate_exact_size(vec2(26.0, 26.0), Sense::hover());
                 icons::logo(ui.painter(), r.center(), 12.0, pal.accent, Color32::WHITE);
                 ui.add_space(2.0);
                 ui.label(RichText::new("noesis").font(FontId::new(21.0, theme::bold())).color(pal.text));
-                let chip = egui::Frame::new().fill(pal.raised).stroke(Stroke::new(1.0, pal.border)).corner_radius(CornerRadius::same(4)).inner_margin(Margin::symmetric(5, 1));
+                let chip = egui::Frame::new().fill(pal.raised).stroke(Stroke::new(1.0_f32, pal.border)).corner_radius(CornerRadius::same(4)).inner_margin(Margin::symmetric(5, 1));
                 chip.show(ui, |ui| {
                     ui.label(RichText::new("COMPUTE").size(9.5).color(pal.muted).strong());
                 });
@@ -352,7 +350,7 @@ impl App {
             let (rect, resp) = ui.allocate_exact_size(vec2(ui.available_width(), 40.0), Sense::click());
             let fill = if resp.hovered() { pal.hover } else { pal.raised };
             ui.painter().rect_filled(rect, 10.0, fill);
-            ui.painter().rect_stroke(rect, 10.0, Stroke::new(1.0, pal.border), StrokeKind::Inside);
+            ui.painter().rect_stroke(rect, 10.0, Stroke::new(1.0_f32, pal.border), StrokeKind::Inside);
             let label_w = 118.0;
             icons::plus_circle(ui.painter(), pos2(rect.center().x - label_w / 2.0, rect.center().y), 7.5, pal.text);
             ui.painter().text(pos2(rect.center().x - label_w / 2.0 + 14.0, rect.center().y), Align2::LEFT_CENTER, "New Session", FontId::proportional(15.0), pal.text);
@@ -454,7 +452,7 @@ impl App {
     fn header(&mut self, ctx: &egui::Context, pal: &Palette) {
         egui::TopBottomPanel::top("header").exact_height(88.0).show_separator_line(false).frame(egui::Frame::new().fill(pal.bg).inner_margin(Margin { left: 26, right: 20, top: 12, bottom: 0 })).show(ctx, |ui| {
             let full = ui.max_rect();
-            ui.painter().line_segment([pos2(full.left() - 26.0, full.bottom()), pos2(full.right() + 20.0, full.bottom())], Stroke::new(1.0, pal.border));
+            ui.painter().line_segment([pos2(full.left() - 26.0, full.bottom()), pos2(full.right() + 20.0, full.bottom())], Stroke::new(1.0_f32, pal.border));
             ui.horizontal(|ui| {
                 if !self.sidebar_open && icon_button(ui, 28.0, pal, icons::sidebar).on_hover_text("Show sidebar (Ctrl+B)").clicked() {
                     self.sidebar_open = true;
@@ -469,7 +467,7 @@ impl App {
                 ui.label(RichText::new(mode.label()).size(13.5).color(pal.muted));
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                     let enabled = self.current.and_then(|i| self.sessions[i].result.as_ref()).is_some();
-                    let btn = egui::Button::new(RichText::new("Export      ").size(14.0).color(pal.text)).fill(pal.bg).stroke(Stroke::new(1.0, pal.border)).corner_radius(CornerRadius::same(18)).min_size(vec2(100.0, 32.0));
+                    let btn = egui::Button::new(RichText::new("Export      ").size(14.0).color(pal.text)).fill(pal.bg).stroke(Stroke::new(1.0_f32, pal.border)).corner_radius(CornerRadius::same(18)).min_size(vec2(100.0, 32.0));
                     let resp = ui.add_enabled(enabled, btn);
                     icons::download(ui.painter(), pos2(resp.rect.right() - 22.0, resp.rect.center().y), 6.0, if enabled { pal.text } else { pal.faint });
                     let popup = ui.make_persistent_id("export-menu");
@@ -505,7 +503,7 @@ impl App {
                     let col = if selected { pal.accent_soft } else if resp.hovered() { pal.text } else { pal.muted };
                     ui.painter().text(pos2(rect.left() + 4.0, rect.top() + 6.0), Align2::LEFT_TOP, label, FontId::proportional(14.5), col);
                     if selected {
-                        ui.painter().line_segment([pos2(rect.left(), rect.bottom() - 1.0), pos2(rect.right(), rect.bottom() - 1.0)], Stroke::new(2.0, pal.accent_soft));
+                        ui.painter().line_segment([pos2(rect.left(), rect.bottom() - 1.0), pos2(rect.right(), rect.bottom() - 1.0)], Stroke::new(2.0_f32, pal.accent_soft));
                     }
                     if resp.clicked() {
                         self.tab = tab;
@@ -572,7 +570,7 @@ impl App {
                 ui.add_space(pad);
                 ui.vertical(|ui| {
                     ui.set_width(w);
-                    let frame = egui::Frame::new().fill(pal.panel).stroke(Stroke::new(1.0, pal.border)).corner_radius(CornerRadius::same(18)).inner_margin(Margin { left: 16, right: 12, top: 12, bottom: 10 });
+                    let frame = egui::Frame::new().fill(pal.panel).stroke(Stroke::new(1.0_f32, pal.border)).corner_radius(CornerRadius::same(18)).inner_margin(Margin { left: 16, right: 12, top: 12, bottom: 10 });
                     frame.show(ui, |ui| {
                         let running = self.current.is_some_and(|i| self.sessions[i].running);
                         let edit = egui::TextEdit::multiline(&mut self.input)
@@ -784,7 +782,7 @@ impl App {
                     let mut picked = None;
                     let cols = if w > 640.0 { 2 } else { 1 };
                     let card = |ui: &mut Ui, cat: &str, items: &[&str], picked: &mut Option<String>| {
-                        egui::Frame::new().fill(pal.panel).stroke(Stroke::new(1.0, pal.border)).corner_radius(CornerRadius::same(14)).inner_margin(Margin::same(14)).show(ui, |ui| {
+                        egui::Frame::new().fill(pal.panel).stroke(Stroke::new(1.0_f32, pal.border)).corner_radius(CornerRadius::same(14)).inner_margin(Margin::same(14)).show(ui, |ui| {
                             ui.set_width(ui.available_width());
                             ui.vertical(|ui| {
                                 ui.label(RichText::new(cat).size(13.0).color(pal.muted));
@@ -792,7 +790,7 @@ impl App {
                                 for it in items.iter() {
                                     let resp = ui.add(egui::Label::new(RichText::new(*it).size(14.5).color(pal.text)).sense(Sense::click()).truncate());
                                     if resp.hovered() {
-                                        ui.painter().line_segment([resp.rect.left_bottom(), resp.rect.right_bottom()], Stroke::new(1.0, pal.accent_soft));
+                                        ui.painter().line_segment([resp.rect.left_bottom(), resp.rect.right_bottom()], Stroke::new(1.0_f32, pal.accent_soft));
                                     }
                                     if resp.clicked() {
                                         *picked = Some(it.to_string());
@@ -817,7 +815,7 @@ impl App {
 
     fn answer(&mut self, ui: &mut Ui, pal: &Palette, r: &QueryResult) {
         if !r.success {
-            egui::Frame::new().fill(pal.panel).stroke(Stroke::new(1.0, pal.border)).corner_radius(CornerRadius::same(12)).inner_margin(Margin::same(14)).show(ui, |ui| {
+            egui::Frame::new().fill(pal.panel).stroke(Stroke::new(1.0_f32, pal.border)).corner_radius(CornerRadius::same(12)).inner_margin(Margin::same(14)).show(ui, |ui| {
                 ui.set_width(ui.available_width());
                 ui.label(RichText::new(r.error.clone().unwrap_or_else(|| "No result.".into())).color(pal.text).size(15.0));
                 if !r.suggestions.is_empty() {
@@ -877,7 +875,7 @@ impl App {
         if !compact {
             ui.add_space(4.0);
             let (rect, _) = ui.allocate_exact_size(vec2(ui.available_width(), 1.0), Sense::hover());
-            ui.painter().line_segment([rect.left_center(), rect.right_center()], Stroke::new(1.0, pal.border.gamma_multiply(0.6)));
+            ui.painter().line_segment([rect.left_center(), rect.right_center()], Stroke::new(1.0_f32, pal.border.gamma_multiply(0.6)));
         }
     }
 

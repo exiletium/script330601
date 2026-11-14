@@ -146,13 +146,6 @@ pub fn number_pods(p: &Parsed, opts: &Options) -> Vec<Pod> {
     pods
 }
 
-fn bool_word(b: bool) -> &'static str {
-    if b {
-        "yes"
-    } else {
-        "no"
-    }
-}
 
 pub fn integer_pods(n: &Int) -> Vec<Pod> {
     let mut pods = Vec::new();
@@ -891,7 +884,7 @@ pub fn two_var_pods(p: &Parsed, x: &Expr, y: &Expr) -> Vec<Pod> {
         jobs.push(job1(move || alternate_forms_pod(&e, &[simp])));
     }
     {
-        let (f, x, y) = (simp.clone(), x.clone(), y.clone());
+        let (f, y) = (simp.clone(), y.clone());
         jobs.push(job1(move || {
             let rs = solve::solve(&f, &y);
             if rs.roots.is_empty() || rs.numeric {

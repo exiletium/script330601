@@ -58,7 +58,7 @@ pub fn show(ui: &mut Ui, id: egui::Id, plot: &Plot, pal: &Palette, states: &mut 
     let st = states.entry(id).or_default();
     let painter = ui.painter_at(rect);
     painter.rect_filled(rect, 10.0, pal.plot_bg);
-    painter.rect_stroke(rect, 10.0, Stroke::new(1.0, pal.border), StrokeKind::Inside);
+    painter.rect_stroke(rect, 10.0, Stroke::new(1.0_f32, pal.border), StrokeKind::Inside);
     match plot.kind {
         PlotKind::Surface => surface(ui, rect, &resp, plot, pal, st),
         PlotKind::Fractal | PlotKind::Contour => {
@@ -105,15 +105,15 @@ fn draw_axes(painter: &egui::Painter, f: &Frame2, pal: &Palette, labels: (&str, 
     let font = FontId::proportional(11.0);
     for t in ticks(f.x.0, f.x.1, 8) {
         let x = f.sx(t);
-        painter.line_segment([pos2(x, f.plot_rect.top()), pos2(x, f.plot_rect.bottom())], Stroke::new(1.0, pal.grid));
+        painter.line_segment([pos2(x, f.plot_rect.top()), pos2(x, f.plot_rect.bottom())], Stroke::new(1.0_f32, pal.grid));
         painter.text(pos2(x, f.plot_rect.bottom() + 5.0), egui::Align2::CENTER_TOP, fmt_tick(t), font.clone(), pal.muted);
     }
     for t in ticks(f.y.0, f.y.1, 6) {
         let y = f.sy(t);
-        painter.line_segment([pos2(f.plot_rect.left(), y), pos2(f.plot_rect.right(), y)], Stroke::new(1.0, pal.grid));
+        painter.line_segment([pos2(f.plot_rect.left(), y), pos2(f.plot_rect.right(), y)], Stroke::new(1.0_f32, pal.grid));
         painter.text(pos2(f.plot_rect.left() - 6.0, y), egui::Align2::RIGHT_CENTER, fmt_tick(t), font.clone(), pal.muted);
     }
-    let axis = Stroke::new(1.2, pal.faint);
+    let axis = Stroke::new(1.2_f32, pal.faint);
     if f.x.0 < 0.0 && f.x.1 > 0.0 {
         let x = f.sx(0.0);
         painter.line_segment([pos2(x, f.plot_rect.top()), pos2(x, f.plot_rect.bottom())], axis);
@@ -210,7 +210,7 @@ fn cartesian(ui: &mut Ui, rect: Rect, resp: &egui::Response, plot0: &Plot, pal: 
                 }
             } else if seg.len() >= 2 {
                 let pts: Vec<Pos2> = seg.iter().map(|p| pos2(f.sx(p[0]), f.sy(p[1]).clamp(-1e5, 1e5))).collect();
-                clip.add(Shape::line(pts, Stroke::new(if overlay { 1.0 } else { 2.0 }, col)));
+                clip.add(Shape::line(pts, Stroke::new(if overlay { 1.0_f32 } else { 2.0_f32 }, col)));
             }
         }
     }
@@ -252,10 +252,10 @@ fn number_line(ui: &mut Ui, rect: Rect, plot: &Plot, pal: &Palette) {
     let right = rect.right() - 24.0;
     let y = rect.center().y - 6.0;
     let sx = |x: f64| left + ((x - x0) / (x1 - x0)) as f32 * (right - left);
-    painter.line_segment([pos2(left, y), pos2(right, y)], Stroke::new(1.5, pal.muted));
+    painter.line_segment([pos2(left, y), pos2(right, y)], Stroke::new(1.5_f32, pal.muted));
     for t in ticks(x0, x1, 10) {
         let x = sx(t);
-        painter.line_segment([pos2(x, y - 4.0), pos2(x, y + 4.0)], Stroke::new(1.0, pal.muted));
+        painter.line_segment([pos2(x, y - 4.0), pos2(x, y + 4.0)], Stroke::new(1.0_f32, pal.muted));
         painter.text(pos2(x, y + 8.0), egui::Align2::CENTER_TOP, fmt_tick(t), FontId::proportional(11.0), pal.muted);
     }
     let col = pal.series(0);
@@ -263,13 +263,13 @@ fn number_line(ui: &mut Ui, rect: Rect, plot: &Plot, pal: &Palette) {
         let a = if sp.lo.is_finite() { sx(sp.lo) } else { left };
         let b = if sp.hi.is_finite() { sx(sp.hi) } else { right };
         if b > a {
-            painter.line_segment([pos2(a, y), pos2(b, y)], Stroke::new(5.0, col));
+            painter.line_segment([pos2(a, y), pos2(b, y)], Stroke::new(5.0_f32, col));
         }
         for (v, closed) in [(sp.lo, sp.lo_closed), (sp.hi, sp.hi_closed)] {
             if v.is_finite() {
                 let c = pos2(sx(v), y);
                 painter.circle_filled(c, 6.0, if closed { col } else { pal.plot_bg });
-                painter.circle_stroke(c, 6.0, Stroke::new(2.0, col));
+                painter.circle_stroke(c, 6.0, Stroke::new(2.0_f32, col));
             }
         }
     }
@@ -283,7 +283,7 @@ fn bars(ui: &mut Ui, rect: Rect, resp: &egui::Response, plot: &Plot, pal: &Palet
     let f = axes_frame(rect, plot.x_range, (plot.y_range.0.min(0.0), plot.y_range.1));
     for t in ticks(f.y.0, f.y.1, 5) {
         let y = f.sy(t);
-        painter.line_segment([pos2(f.plot_rect.left(), y), pos2(f.plot_rect.right(), y)], Stroke::new(1.0, pal.grid));
+        painter.line_segment([pos2(f.plot_rect.left(), y), pos2(f.plot_rect.right(), y)], Stroke::new(1.0_f32, pal.grid));
         painter.text(pos2(f.plot_rect.left() - 6.0, y), egui::Align2::RIGHT_CENTER, fmt_tick(t), FontId::proportional(11.0), pal.muted);
     }
     let n = pts.len().max(1);
@@ -415,12 +415,12 @@ fn surface(ui: &mut Ui, rect: Rect, resp: &egui::Response, plot: &Plot, pal: &Pa
     painter.add(Shape::mesh(mesh));
     if nx <= 80 {
         for (_, pts, _) in quads.iter().step_by(1) {
-            painter.add(Shape::closed_line(pts.to_vec(), Stroke::new(0.4, edge)));
+            painter.add(Shape::closed_line(pts.to_vec(), Stroke::new(0.4_f32, edge)));
         }
     }
     // bounding box floor and axis labels
     let floor: Vec<Pos2> = [(-1.0, -1.0), (1.0, -1.0), (1.0, 1.0), (-1.0, 1.0)].iter().map(|(u, v)| proj(*u, *v, -0.6).0).collect();
-    painter.add(Shape::closed_line(floor, Stroke::new(1.0, pal.faint)));
+    painter.add(Shape::closed_line(floor, Stroke::new(1.0_f32, pal.faint)));
     let font = FontId::proportional(11.0);
     let (px, _) = proj(1.15, -1.0, -0.6);
     let (py, _) = proj(-1.0, 1.15, -0.6);

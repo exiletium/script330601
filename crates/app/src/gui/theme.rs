@@ -130,29 +130,29 @@ pub fn apply(ctx: &egui::Context, p: &Palette) {
     v.extreme_bg_color = p.raised;
     v.faint_bg_color = p.raised;
     v.override_text_color = Some(p.text);
-    v.window_stroke = Stroke::new(1.0, p.border);
+    v.window_stroke = Stroke::new(1.0_f32, p.border);
     v.window_corner_radius = CornerRadius::same(12);
     v.menu_corner_radius = CornerRadius::same(10);
     v.selection.bg_fill = p.accent.gamma_multiply(0.45);
-    v.selection.stroke = Stroke::new(1.0, p.accent_soft);
+    v.selection.stroke = Stroke::new(1.0_f32, p.accent_soft);
     v.hyperlink_color = p.accent_soft;
     for w in [&mut v.widgets.inactive, &mut v.widgets.hovered, &mut v.widgets.active, &mut v.widgets.open] {
         w.corner_radius = CornerRadius::same(8);
     }
     v.widgets.noninteractive.bg_fill = p.panel;
-    v.widgets.noninteractive.bg_stroke = Stroke::new(1.0, p.border);
-    v.widgets.noninteractive.fg_stroke = Stroke::new(1.0, p.text);
+    v.widgets.noninteractive.bg_stroke = Stroke::new(1.0_f32, p.border);
+    v.widgets.noninteractive.fg_stroke = Stroke::new(1.0_f32, p.text);
     v.widgets.inactive.bg_fill = p.raised;
     v.widgets.inactive.weak_bg_fill = p.raised;
-    v.widgets.inactive.bg_stroke = Stroke::new(1.0, p.border);
-    v.widgets.inactive.fg_stroke = Stroke::new(1.0, p.text);
+    v.widgets.inactive.bg_stroke = Stroke::new(1.0_f32, p.border);
+    v.widgets.inactive.fg_stroke = Stroke::new(1.0_f32, p.text);
     v.widgets.hovered.bg_fill = p.hover;
     v.widgets.hovered.weak_bg_fill = p.hover;
-    v.widgets.hovered.bg_stroke = Stroke::new(1.0, p.border);
-    v.widgets.hovered.fg_stroke = Stroke::new(1.0, p.text);
+    v.widgets.hovered.bg_stroke = Stroke::new(1.0_f32, p.border);
+    v.widgets.hovered.fg_stroke = Stroke::new(1.0_f32, p.text);
     v.widgets.active.bg_fill = p.hover;
     v.widgets.active.weak_bg_fill = p.hover;
-    v.widgets.active.fg_stroke = Stroke::new(1.0, p.text);
+    v.widgets.active.fg_stroke = Stroke::new(1.0_f32, p.text);
     v.popup_shadow = egui::epaint::Shadow { offset: [0, 4], blur: 16, spread: 0, color: Color32::from_black_alpha(if p.dark { 120 } else { 40 }) };
     ctx.set_visuals(v);
     let mut style = (*ctx.style()).clone();

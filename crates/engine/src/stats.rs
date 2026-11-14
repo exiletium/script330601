@@ -2,7 +2,6 @@
 //! distributions.
 
 use crate::engine::*;
-use crate::expr::Expr::*;
 use crate::expr::*;
 use crate::parse::Parsed;
 use crate::plot as pl;

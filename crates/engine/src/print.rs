@@ -716,6 +716,7 @@ fn text_d(d: &D, prec: u8) -> String {
             (out, 1)
         }
         D::Infix(a, op, b) if op == "," => (format!("{}, {}", text_d(a, 0), text_d(b, 0)), 1),
+        D::Infix(a, op, b) if op == "or" || op == "and" => (format!("{} {} {}", text_d(a, 0), op, text_d(b, 0)), 1),
         D::Infix(a, op, b) => (format!("{} {} {}", text_d(a, 3), op, text_d(b, 3)), 2),
         D::Prefix(op, a) => (format!("{}{}", op, text_d(a, 6)), 5),
         D::Postfix(a, op) => (format!("{}{}", text_d(a, 6), op), 8),
@@ -937,6 +938,7 @@ fn node_inner(d: &D) -> (MathNode, u8) {
             (MathNode::Row(row), 1)
         }
         D::Infix(a, o, b) if o == "," => (MathNode::Row(vec![node_p(a, 0), t(",  "), node_p(b, 0)]), 1),
+        D::Infix(a, o, b) if o == "or" || o == "and" => (MathNode::Row(vec![node_p(a, 0), op(o), node_p(b, 0)]), 1),
         D::Infix(a, o, b) => (MathNode::Row(vec![node_p(a, 3), op(o), node_p(b, 3)]), 2),
         D::Prefix(o, a) => (MathNode::Row(vec![t(o), node_p(a, 6)]), 5),
         D::Postfix(a, o) => (MathNode::Row(vec![node_p(a, 6), t(o)]), 8),

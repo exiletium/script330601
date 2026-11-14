@@ -352,7 +352,8 @@ pub fn handle(q: &Query) -> Option<Answer> {
     // element lookups: "iron", "element 26", "properties of gold", "Fe"
     let el_q = l.trim_start_matches("properties of ").trim_start_matches("the element ").trim_start_matches("chemical element ");
     let orig = &q.clean[q.clean.len() - el_q.len()..];
-    if let Some(e) = find_element(orig) {
+    let numeric = el_q.trim().chars().all(|c| c.is_ascii_digit());
+    if let Some(e) = find_element(orig).filter(|_| !numeric || l.starts_with("element")) {
         if el_q.len() > 2 || q.raw.trim().len() <= 2 || l.starts_with("element") {
             return Some(Answer::new(format!("{} (element)", e.name), element_pods(e)));
         }

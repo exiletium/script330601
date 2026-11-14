@@ -606,6 +606,7 @@ fn decimal_to_rat(text: &str) -> Option<Rat> {
 }
 
 struct Lexer<'a> {
+    #[allow(dead_code)]
     ctx: &'a Ctx,
     out: Vec<Tok>,
 }
@@ -892,6 +893,7 @@ fn tokenize(src: &str, ctx: &Ctx) -> Result<Vec<Tok>, String> {
 // parser
 // ---------------------------------------------------------------------------
 
+#[allow(dead_code)]
 struct Parser<'a> {
     toks: Vec<Tok>,
     pos: usize,
