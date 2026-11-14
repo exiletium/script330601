@@ -90,6 +90,17 @@ fn knowledge_domains() {
 }
 
 #[test]
+fn differential_equations() {
+    assert_eq!(short("y'' + y = 0"), "y(x) = c_1 cos(x) + c_2 sin(x)");
+    assert_eq!(short("y' = y, y(0) = 1"), "y(x) = e^x");
+    assert_eq!(short("y'' + 4y = sin(x), y(0)=0, y'(0)=1"), "y(x) = (sin(x) + sin(2 x))/3");
+    assert_eq!(short("y' + 2y = x"), "y(x) = e^(-2 x) c_1 + x/2 - 1/4");
+    assert_eq!(short("y'' + 2y' + y = 0"), "y(x) = e^(-x) (c_2 x + c_1)");
+    let r = q("y' = sin(x y), y(0) = 1");
+    assert!(r.pods.iter().any(|p| p.id == "NumericSolution"));
+}
+
+#[test]
 fn unknown_input_fails_gracefully() {
     let r = noesis::query("qwzx blorp flim");
     assert!(!r.success);

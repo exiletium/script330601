@@ -19,6 +19,7 @@ Type a calculation, an equation, a function, a question in plain English or a un
 | Equations | `solve x^3 - 6x^2 + 11x - 6 = 0`, `sin(x) = 1/2` (general solution with n ∈ ℤ), `e^(2x) - 3e^x + 2 = 0`, radical and absolute-value equations, Cardano formulas, numeric roots |
 | Systems and inequalities | `{x^2 + y^2 = 25, x + y = 7}`, `{2x + 3y - z = 1, …}`, `(x-1)/(x+2) >= 0` → `x < -2 or x ≥ 1` with a number line |
 | Calculus | `derivative of x^x` (with steps), `integrate x^2 sin(x) dx`, `integrate e^(-x^2) from -inf to inf`, `limit (sin x - x)/x^3 as x -> 0`, `taylor series of e^x`, `sum 1/k^2, k=1 to inf`, `product k, k=1 to n` |
+| Differential equations | `y'' + y = 0`, `y' = x y`, `dy/dx = x/y`, `y'' - 3y' + 2y = e^x`, `y'' + 4y = sin(x), y(0)=0, y'(0)=1`: classification, general solution, solution of the initial value problem, solution families; Runge–Kutta numeric solutions when there is no closed form |
 | Function analysis | any `f(x)`: plot, roots, domain, range, parity, period, derivative, antiderivative, global extrema, limits at ±∞, series |
 | Two variables | `x^2 - y^2`: 3-D surface, contour plot, partial derivatives, critical points with classification; `x^2 + y^2 = 25`: implicit plot, conic classification, implicit derivative |
 | Linear algebra | `{{1,2},{3,4}}`: determinant, inverse, eigenvalues and eigenvectors, characteristic polynomial, rank, row-reduced form, null space, singular values; works with symbolic entries |
@@ -45,6 +46,7 @@ It is also more limited, and these limits are real:
 * **Narrower language understanding.** Noesis recognises the phrasings listed above and ordinary mathematical notation. It does not understand arbitrary English questions.
 * **A smaller computer algebra system.** Integration is heuristic: tables, substitution, parts, rational functions, Euler and Weierstrass substitutions and special functions (erf, Si, Ei, Fresnel). It is not a complete Risch implementation, so some elementary integrals that Mathematica finds will be missed. Every antiderivative is checked numerically before it is shown, so wrong answers are rejected rather than displayed. Factoring is over ℚ only, and high-degree polynomials fall back to numeric roots.
 * **Step-by-step solutions** exist for derivatives and quadratic equations, not yet for integrals or limits.
+* **Differential equations:** linear equations with constant coefficients of any order, and first-order linear, separable and Bernoulli equations. Other nonlinear and variable-coefficient higher-order equations get a numeric solution when initial conditions are given. Partial differential equations are not supported.
 * **Precision:** decimals are arbitrary-precision for elementary constants (50 digits shown). Special functions and GPU evaluation use double and single precision respectively.
 
 ## Install and run
@@ -137,7 +139,7 @@ crates/engine  (library "noesis")
   poly, simplify     dense and sparse polynomials, gcd, factoring over ℚ,
                      rational functions, simplification by rewrite search
   calculus           derivatives (with steps), Puiseux/Laurent series, limits,
-                     integration, definite integrals, sums and products
+                     integration, definite integrals, sums and products, ODEs
   solve              polynomial roots, inversion, periodic solutions, systems,
                      resultants, inequalities
   linalg, stats      matrices (exact/symbolic), statistics, distributions, fits

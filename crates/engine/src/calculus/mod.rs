@@ -3,6 +3,7 @@
 pub mod diff;
 pub mod integrate;
 pub mod limit;
+pub mod ode;
 pub mod series;
 pub mod sum;
 
