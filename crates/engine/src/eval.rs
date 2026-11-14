@@ -276,6 +276,114 @@ impl Program {
         st.pop().unwrap_or(f64::NAN)
     }
 
+    /// Translate to a WGSL `f32` expression over variables `v0, v1, ...`.
+    /// `None` when the program uses a function without a GPU implementation.
+    /// Helper functions referenced by the expression are defined in
+    /// [`WGSL_PRELUDE`].
+    pub fn to_wgsl(&self) -> Option<String> {
+        fn lit(v: f64) -> String {
+            if v.is_nan() {
+                "nan_f()".into()
+            } else if v.is_infinite() {
+                if v > 0.0 { "inf_f()".into() } else { "(-inf_f())".into() }
+            } else {
+                let s = format!("{:e}", v as f32);
+                format!("f32({s})")
+            }
+        }
+        let mut st: Vec<String> = Vec::new();
+        for op in &self.ops {
+            match *op {
+                Op::Num(v) => st.push(lit(v)),
+                Op::Imag => return None,
+                Op::Var(k) => st.push(format!("v{k}")),
+                Op::Add(n) | Op::Mul(n) => {
+                    let at = st.len().checked_sub(n as usize)?;
+                    let parts: Vec<String> = st.drain(at..).collect();
+                    let sep = if matches!(op, Op::Add(_)) { " + " } else { " * " };
+                    st.push(format!("({})", parts.join(sep)));
+                }
+                Op::Pow => {
+                    let e = st.pop()?;
+                    let b = st.pop()?;
+                    st.push(format!("rpow({b}, {e})"));
+                }
+                Op::PowI(k) => {
+                    let b = st.pop()?;
+                    st.push(format!("powi({b}, {k})"));
+                }
+                Op::PowRat(p, q) => {
+                    let b = st.pop()?;
+                    let real = if self.real_roots { 1 } else { 0 };
+                    st.push(format!("powrat({b}, {p}, {q}, {real})"));
+                }
+                Op::Exp => {
+                    let x = st.pop()?;
+                    st.push(format!("exp({x})"));
+                }
+                Op::Call(f, n) => {
+                    let at = st.len().checked_sub(n as usize)?;
+                    let a: Vec<String> = st.drain(at..).collect();
+                    let one = |name: &str| -> Option<String> { if a.len() == 1 { Some(format!("{name}({})", a[0])) } else { None } };
+                    let s = match f {
+                        Fun::Sin => one("sin")?,
+                        Fun::Cos => one("cos")?,
+                        Fun::Tan => one("tan")?,
+                        Fun::Asin => one("asin")?,
+                        Fun::Acos => one("acos")?,
+                        Fun::Atan => one("atan")?,
+                        Fun::Sinh => one("sinh")?,
+                        Fun::Cosh => one("cosh")?,
+                        Fun::Tanh => one("tanh")?,
+                        Fun::Asinh => one("asinh")?,
+                        Fun::Acosh => one("acosh")?,
+                        Fun::Atanh => one("atanh")?,
+                        Fun::Ln => one("ln_f")?,
+                        Fun::Abs => one("abs")?,
+                        Fun::Sign => one("sign")?,
+                        Fun::Floor => one("floor")?,
+                        Fun::Ceil => one("ceil")?,
+                        Fun::Round => one("round")?,
+                        Fun::Frac => one("fract")?,
+                        Fun::Cbrt => one("cbrt_f")?,
+                        Fun::Erf => one("erf_f")?,
+                        Fun::Erfc => format!("(1.0 - erf_f({}))", a.first()?),
+                        Fun::Heaviside => one("heav")?,
+                        Fun::Sinc => one("sinc_f")?,
+                        Fun::Gamma => one("gamma_f")?,
+                        Fun::Factorial => format!("gamma_f({} + 1.0)", a.first()?),
+                        Fun::Min if a.len() >= 2 => a[1..].iter().fold(a[0].clone(), |acc, x| format!("min({acc}, {x})")),
+                        Fun::Max if a.len() >= 2 => a[1..].iter().fold(a[0].clone(), |acc, x| format!("max({acc}, {x})")),
+                        Fun::Mod if a.len() == 2 => format!("modf_({}, {})", a[0], a[1]),
+                        Fun::Atan2 if a.len() == 2 => format!("atan2({}, {})", a[0], a[1]),
+                        Fun::Log if a.len() == 2 => format!("(ln_f({}) / ln_f({}))", a[1], a[0]),
+                        Fun::Re => a.first()?.clone(),
+                        _ => return None,
+                    };
+                    st.push(s);
+                }
+                Op::Rel(r) => {
+                    let b = st.pop()?;
+                    let a = st.pop()?;
+                    let o = match r {
+                        RelOp::Eq => "==",
+                        RelOp::Ne => "!=",
+                        RelOp::Lt => "<",
+                        RelOp::Le => "<=",
+                        RelOp::Gt => ">",
+                        RelOp::Ge => ">=",
+                    };
+                    st.push(format!("select(0.0, 1.0, {a} {o} {b})"));
+                }
+            }
+        }
+        if st.len() == 1 {
+            st.pop()
+        } else {
+            None
+        }
+    }
+
     pub fn eval_c(&self, vars: &[C]) -> C {
         let mut st: Vec<C> = Vec::with_capacity(16);
         self.eval_c_with(vars, &mut st)
@@ -814,3 +922,66 @@ pub fn chop(x: f64) -> f64 {
         x
     }
 }
+
+/// WGSL helper functions used by [`Program::to_wgsl`].
+pub const WGSL_PRELUDE: &str = r#"
+fn nan_f() -> f32 { return bitcast<f32>(0x7fc00000u); }
+fn inf_f() -> f32 { return bitcast<f32>(0x7f800000u); }
+fn ln_f(x: f32) -> f32 { if (x < 0.0) { return nan_f(); } return log(x); }
+fn powi(b: f32, k: i32) -> f32 {
+    var r = 1.0; var p = b; var n = abs(k);
+    loop { if (n == 0) { break; } if ((n & 1) == 1) { r = r * p; } p = p * p; n = n >> 1u; }
+    if (k < 0) { return 1.0 / r; }
+    return r;
+}
+fn rpow(b: f32, e: f32) -> f32 {
+    if (b > 0.0) { return pow(b, e); }
+    if (b == 0.0) { if (e > 0.0) { return 0.0; } if (e == 0.0) { return 1.0; } return inf_f(); }
+    if (fract(e) == 0.0) { return powi(b, i32(e)); }
+    return nan_f();
+}
+fn powrat(b: f32, p: i32, q: i32, real_roots: i32) -> f32 {
+    let e = f32(p) / f32(q);
+    if (b >= 0.0) { return pow(b, e); }
+    if (real_roots == 1 && (q % 2) == 1) {
+        let m = pow(-b, e);
+        if ((p % 2) == 0) { return m; }
+        return -m;
+    }
+    return nan_f();
+}
+fn cbrt_f(x: f32) -> f32 { return sign(x) * pow(abs(x), 1.0 / 3.0); }
+fn heav(x: f32) -> f32 { if (x > 0.0) { return 1.0; } if (x < 0.0) { return 0.0; } return 0.5; }
+fn sinc_f(x: f32) -> f32 { if (abs(x) < 1e-6) { return 1.0; } return sin(x) / x; }
+fn modf_(a: f32, b: f32) -> f32 { return a - b * floor(a / b); }
+fn erf_f(x: f32) -> f32 {
+    // Abramowitz-Stegun 7.1.26
+    let t = 1.0 / (1.0 + 0.3275911 * abs(x));
+    let y = 1.0 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * exp(-x * x);
+    return sign(x) * y;
+}
+fn gamma_f(x0: f32) -> f32 {
+    // Lanczos approximation with reflection
+    var x = x0;
+    if (x < 0.5) {
+        let s = sin(3.14159265 * x);
+        if (s == 0.0) { return nan_f(); }
+        return 3.14159265 / (s * gamma_f_pos(1.0 - x));
+    }
+    return gamma_f_pos(x);
+}
+fn gamma_f_pos(z: f32) -> f32 {
+    // Lanczos (g = 5, 6 terms)
+    var y = z;
+    var tmp = z + 5.5;
+    tmp = tmp - (z + 0.5) * log(tmp);
+    var ser = 1.000000000190015;
+    y = y + 1.0; ser = ser + 76.18009172947146 / y;
+    y = y + 1.0; ser = ser - 86.50532032941677 / y;
+    y = y + 1.0; ser = ser + 24.01409824083091 / y;
+    y = y + 1.0; ser = ser - 1.231739572450155 / y;
+    y = y + 1.0; ser = ser + 0.001208650973866179 / y;
+    y = y + 1.0; ser = ser - 0.000005395239384953 / y;
+    return exp(-tmp + log(2.5066282746310005 * ser / z));
+}
+"#;

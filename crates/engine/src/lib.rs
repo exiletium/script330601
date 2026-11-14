@@ -1,12 +1,16 @@
 //! Noesis computational engine.
 pub mod budget;
 pub mod calculus;
+pub mod compute;
 pub mod eval;
 pub mod expr;
 pub mod funcs;
+#[cfg(feature = "gpu")]
+pub mod gpu;
 pub mod numeric;
 pub mod numtheory;
 pub mod parse;
+pub mod plot;
 pub mod poly;
 pub mod print;
 pub mod simplify;
