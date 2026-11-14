@@ -131,7 +131,9 @@ pub fn tan_pi(q: &Rat) -> Option<Expr> {
 pub fn is_negated(x: &Expr) -> bool {
     match x {
         Num(_) | Float(_) | Mul(_) => x.is_negative_term(),
-        Add(v) => v.iter().find(|t| !t.is_numeric()).map_or(false, |t| t.is_negative_term()),
+        // decide by the term whose non-numeric part is smallest, which does
+        // not depend on the signs of the coefficients
+        Add(v) => v.iter().filter(|t| !t.is_numeric()).min_by(|a, b| a.coeff_split().1.cmp(&b.coeff_split().1)).map_or(false, |t| t.is_negative_term()),
         _ => false,
     }
 }

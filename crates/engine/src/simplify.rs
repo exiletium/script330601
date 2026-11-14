@@ -919,7 +919,20 @@ pub fn pull_content(e: &Expr) -> Expr {
             fs.push(Num(coef));
             raw_mul_keep(fs)
         }
-        Pow(b, ex) => pow(pull_content(b), (**ex).clone()),
+        Pow(b, ex) => {
+            let base = pull_content(b);
+            if let (Add(ts), Some(r)) = (&base, ex.as_rat()) {
+                if !r.is_integer() {
+                    let (g, sign) = sum_content(ts);
+                    if !g.is_one() && !sign {
+                        let inv = Num(g.recip());
+                        let rest = add(ts.iter().map(|t| mul(vec![inv.clone(), t.clone()])).collect());
+                        return mul(vec![pow(Num(g), (**ex).clone()), pow(rest, (**ex).clone())]);
+                    }
+                }
+            }
+            pow(base, (**ex).clone())
+        }
         Func(n, a) => func(n, a.iter().map(pull_content).collect()),
         _ => e.clone(),
     }

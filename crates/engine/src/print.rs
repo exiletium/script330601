@@ -283,6 +283,11 @@ fn sum_d(v: &[Expr], fmt: &Fmt) -> D {
             k
         }
     });
+    // the integration constant always goes last
+    if let Some(k) = terms.iter().position(|t| matches!(t, Sym(n) if &**n == "constant")) {
+        let c = terms.remove(k);
+        terms.push(c);
+    }
     let mut ds: Vec<D> = terms.iter().map(|t| to_d(t, fmt)).collect();
     // common denominator: x/2 + y/2 -> (x + y)/2
     if ds.len() >= 2 {
@@ -459,6 +464,38 @@ pub fn call_d(name: &str, mut args: Vec<D>) -> D {
         ("Derivative", 2) => D::Deriv { body: tk(&mut args, 0), var: tk(&mut args, 1), order: one() },
         ("Derivative", 3) => D::Deriv { body: tk(&mut args, 0), var: tk(&mut args, 1), order: tk(&mut args, 2) },
         ("not", 1) => D::Prefix("¬".into(), tk(&mut args, 0)),
+        ("Where", 2) => {
+            let b = args.pop().unwrap();
+            let a = args.pop().unwrap();
+            D::Infix(Box::new(a), ",".into(), Box::new(b))
+        }
+        ("Element", 2) => {
+            let b = args.pop().unwrap();
+            let a = args.pop().unwrap();
+            let b = match b {
+                D::Ident(s) => D::Text(s),
+                other => other,
+            };
+            D::Infix(Box::new(a), "∈".into(), Box::new(b))
+        }
+        ("Approx", 2) => {
+            let b = args.pop().unwrap();
+            let a = args.pop().unwrap();
+            D::Rel(vec![a, b], vec!["≈".into()])
+        }
+        ("Tuple", 1) => match args.pop().unwrap() {
+            D::List(v) => D::Tuple(v),
+            other => D::Tuple(vec![other]),
+        },
+        ("Conj", _) => {
+            let mut it = args.into_iter();
+            let mut acc = it.next().unwrap_or(D::Text(String::new()));
+            for x in it {
+                acc = D::Infix(Box::new(acc), ",".into(), Box::new(x));
+            }
+            acc
+        }
+        ("PlusMinus", 1) => D::Prefix("±".into(), tk(&mut args, 0)),
         ("Or", _) => {
             let mut it = args.into_iter();
             let mut acc = it.next().unwrap_or(D::Text(String::new()));
@@ -677,6 +714,7 @@ fn text_d(d: &D, prec: u8) -> String {
             }
             (out, 1)
         }
+        D::Infix(a, op, b) if op == "," => (format!("{}, {}", text_d(a, 0), text_d(b, 0)), 1),
         D::Infix(a, op, b) => (format!("{} {} {}", text_d(a, 3), op, text_d(b, 3)), 2),
         D::Prefix(op, a) => (format!("{}{}", op, text_d(a, 6)), 5),
         D::Postfix(a, op) => (format!("{}{}", text_d(a, 6), op), 8),
@@ -897,6 +935,7 @@ fn node_inner(d: &D) -> (MathNode, u8) {
             }
             (MathNode::Row(row), 1)
         }
+        D::Infix(a, o, b) if o == "," => (MathNode::Row(vec![node_p(a, 0), t(",  "), node_p(b, 0)]), 1),
         D::Infix(a, o, b) => (MathNode::Row(vec![node_p(a, 3), op(o), node_p(b, 3)]), 2),
         D::Prefix(o, a) => (MathNode::Row(vec![t(o), node_p(a, 6)]), 5),
         D::Postfix(a, o) => (MathNode::Row(vec![node_p(a, 6), t(o)]), 8),
