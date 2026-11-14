@@ -386,7 +386,9 @@ pub fn handle(q: &Query) -> Option<Answer> {
     if let Some(f) = compound_formula(l) {
         let counts = parse_formula(f)?;
         let label = format!("{l} ({f})");
-        return Some(Answer::new(label.clone(), compound_pods(&label, f, &counts)));
+        let mut pods = compound_pods(&label, f, &counts);
+        pods.extend(super::chemcalc::property_pod(l));
+        return Some(Answer::new(label.clone(), pods));
     }
     let raw = q.clean.trim();
     if raw.len() >= 3 && raw.chars().any(|c| c.is_ascii_digit()) && raw.chars().next()?.is_ascii_uppercase() && !raw.contains(' ') {

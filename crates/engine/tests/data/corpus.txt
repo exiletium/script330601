@@ -1,0 +1,269 @@
+# arithmetic and numbers
+2+2
+what is 15% of 240
+15 percent of 240
+what is 12 times 12
+square root of 144
+cube root of 27
+5 factorial
+2 to the power of 10
+what is 7 divided by 3
+1/3 + 1/4
+17 mod 5
+is 97 prime
+is 91 a prime number
+prime factorization of 360
+factor 360
+gcd of 48 and 180
+lcm of 4, 6 and 10
+greatest common divisor of 12 and 18
+least common multiple of 12 and 18
+divisors of 60
+100th prime
+next prime after 100
+primes between 1 and 50
+how many primes are there below 100
+convert 255 to binary
+255 in hexadecimal
+0xff to decimal
+binary 101101 to decimal
+MMXXIV in decimal
+2024 in roman numerals
+pi to 50 digits
+e to 30 digits
+golden ratio
+round 3.14159 to 2 decimal places
+is 1001 divisible by 7
+sum of digits of 12345
+10 choose 3
+number of permutations of 5 objects
+fibonacci 30
+30th fibonacci number
+continued fraction of pi
+sqrt(2) to 40 digits
+log base 2 of 1024
+natural log of 10
+absolute value of -7
+reciprocal of 8
+average of 3, 5, 7, 10
+# algebra
+solve x^2 - 5x + 6 = 0
+solve 2x + 3 = 7 for x
+roots of x^3 - 2x + 1
+find the roots of x^2 + 1
+factor x^4 - 16
+expand (x+1)^5
+simplify (x^2-1)/(x-1)
+partial fractions 1/(x^2-1)
+solve x + y = 5, x - y = 1
+solve x^2 + y^2 = 25, y = x + 1
+x^2 < 4
+solve |x - 3| < 5
+complete the square x^2 + 6x + 2
+what are the zeros of x^2 - 4
+domain of sqrt(x-2)
+range of x^2 + 1
+inverse of f(x) = 2x + 3
+is x^3 odd or even
+vertex of y = x^2 - 4x + 3
+slope of the line through (1,2) and (3,8)
+equation of the line through (1,2) and (3,8)
+distance between (1,2) and (4,6)
+midpoint of (1,2) and (5,8)
+quadratic formula
+polynomial division (x^3 - 1)/(x - 1)
+gcd of x^2 - 1 and x^2 - 2x + 1
+simplify sqrt(50)
+rationalize 1/(1+sqrt(2))
+(2+3i)(4-i)
+absolute value of 3+4i
+conjugate of 2+3i
+polar form of 1+i
+# calculus
+derivative of x^2 sin(x)
+differentiate e^(2x) with respect to x
+d/dx x^x
+second derivative of sin(x^2)
+what is the derivative of tan(x)
+integrate x^2 dx
+integral of 1/x
+antiderivative of cos(x)^2
+integrate sin(x) from 0 to pi
+area under x^2 from 0 to 3
+integral of e^(-x^2) from -infinity to infinity
+limit of sin(x)/x as x approaches 0
+lim x->infinity (1 + 1/x)^x
+taylor series of e^x
+maclaurin series of cos(x)
+series expansion of ln(1+x) at x=0
+sum of 1/n^2 from n=1 to infinity
+sum of k from 1 to 100
+1 + 2 + 3 + ... + 100
+critical points of x^3 - 3x
+local maxima of x^3 - 3x
+minimum of x^2 + 2x + 5
+inflection points of x^3 - 3x^2
+tangent line to x^2 at x = 1
+arc length of x^2 from 0 to 1
+area between x^2 and x
+volume of revolution of sqrt(x) from 0 to 4
+partial derivative of x^2 y + y^3 with respect to y
+gradient of x^2 + y^2
+double integral of x y dx dy, x from 0 to 1, y from 0 to 2
+y' = 2y
+y'' + 4y = 0
+laplace transform of t^2
+average value of sin(x) from 0 to pi
+asymptotes of (x^2+1)/(x-1)
+is 1/n^2 convergent
+curl of (y, -x, 0)
+divergence of (x^2, y^2, z^2)
+# plotting
+plot sin(x)
+plot x^2 from -2 to 2
+graph y = 2x + 1
+plot x^2 + y^2 = 1
+plot sin(x) and cos(x)
+3d plot of sin(x) cos(y)
+polar plot r = 1 + cos(theta)
+mandelbrot set
+# linear algebra
+determinant of {{1,2},{3,4}}
+inverse of {{1,2},{3,4}}
+eigenvalues of {{2,1},{1,2}}
+{{1,2},{3,4}} * {{5,6},{7,8}}
+transpose of {{1,2,3},{4,5,6}}
+rank of {{1,2},{2,4}}
+dot product of (1,2,3) and (4,5,6)
+cross product of (1,0,0) and (0,1,0)
+norm of (3,4)
+angle between (1,0) and (1,1)
+row reduce {{1,2,3},{4,5,6}}
+trace of {{1,2},{3,4}}
+identity matrix 3
+null space of {{1,2},{2,4}}
+# statistics and probability
+mean of 1, 2, 3, 4, 10
+median of 5, 3, 9, 1
+standard deviation of 2, 4, 4, 4, 5, 5, 7, 9
+variance of 1, 2, 3, 4
+mode of 1, 2, 2, 3, 3, 3
+linear regression (1,2), (2,4), (3,5)
+probability of 3 heads in 5 coin flips
+normal distribution mean 0 sd 1
+binomial distribution n=10 p=0.5
+P(X < 1.96) for standard normal
+z-score for 95% confidence
+probability of rolling a sum of 7 with two dice
+5 coin tosses
+correlation of {1,2,3,4} and {2,4,5,8}
+# units and conversions
+10 miles in km
+convert 100 fahrenheit to celsius
+5 feet 10 inches in cm
+how many ounces in a pound
+how many seconds in a year
+60 mph in m/s
+1 light year in km
+100 kg to lbs
+2 hours 30 minutes in seconds
+1 gallon in liters
+speed of light
+planck constant
+mass of the electron
+gravitational constant
+avogadro number
+boltzmann constant
+1 atm in pascals
+1 kWh in joules
+500 calories in kJ
+3 tablespoons in ml
+how many feet in a mile
+# physics formulas
+kinetic energy of 2 kg at 3 m/s
+force of 5 kg accelerating at 2 m/s^2
+energy of a photon with wavelength 500 nm
+escape velocity of earth
+gravitational force between earth and moon
+ohm's law 12 V 4 ohm
+wavelength of 100 MHz
+E = mc^2 for 1 kg
+free fall from 100 m
+period of a pendulum of length 1 m
+# chemistry
+molar mass of H2O
+molar mass of caffeine
+atomic number of gold
+atomic mass of carbon
+electron configuration of iron
+boiling point of water
+density of gold
+melting point of iron
+balance H2 + O2 -> H2O
+oxygen
+element 79
+pH of 0.01 M HCl
+how many moles in 18 g of water
+# geometry
+area of a circle with radius 5
+circumference of a circle with radius 3
+volume of a sphere with radius 2
+surface area of a sphere of radius 3
+area of a triangle with sides 3, 4, 5
+volume of a cylinder with radius 2 and height 5
+volume of a cone with radius 3 and height 4
+hypotenuse of a right triangle with legs 3 and 4
+area of a rectangle 4 by 6
+perimeter of a square with side 5
+diagonal of a square with side 1
+interior angles of a hexagon
+area of an ellipse with semi-axes 3 and 2
+sin(30 degrees)
+cos(pi/3)
+arctan(1) in degrees
+45 degrees in radians
+pi/6 radians in degrees
+law of cosines a=3 b=4 C=60 degrees
+# dates and time
+days until christmas
+days between 2020-01-01 and 2024-03-15
+what day of the week was july 4 1776
+30 days from today
+how old is someone born on 1990-05-17
+time in tokyo
+current time in london
+is 2024 a leap year
+week number of today
+unix time
+# geography and facts
+population of france
+capital of japan
+area of brazil
+distance from new york to london
+largest country by area
+gdp of germany
+height of mount everest
+speed of sound
+distance from earth to the sun
+radius of the earth
+mass of the sun
+how far is the moon
+# finance
+compound interest 1000 at 5% for 10 years
+mortgage 300000 at 6% for 30 years
+simple interest on 500 at 3% for 2 years
+20% tip on 45.50
+30% off 80
+present value of 1000 in 5 years at 7%
+# misc / words
+truth table p and q
+p implies q
+simplify not (a and b)
+solve 3x = 12
+how many days in february 2024
+number of letters in mississippi
+anagrams of listen
+scrabble score of quiz
+temperature of the sun
+BMI 70 kg 175 cm
+random number between 1 and 100

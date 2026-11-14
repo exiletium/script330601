@@ -18,7 +18,7 @@ macro_rules! re {
 // dates
 // ---------------------------------------------------------------------------
 
-fn today() -> NaiveDate {
+pub(crate) fn today() -> NaiveDate {
     chrono::Local::now().date_naive()
 }
 
@@ -67,11 +67,11 @@ pub fn parse_date(s: &str) -> Option<NaiveDate> {
     None
 }
 
-fn date_long(d: NaiveDate) -> String {
+pub(crate) fn date_long(d: NaiveDate) -> String {
     d.format("%A, %B %-d, %Y").to_string()
 }
 
-fn span_text(days: i64) -> String {
+pub(crate) fn span_text(days: i64) -> String {
     let a = days.abs();
     let weeks = a / 7;
     let mut parts = vec![format!("{a} days")];
@@ -172,7 +172,7 @@ fn dates(q: &Query) -> Option<Answer> {
 // finance
 // ---------------------------------------------------------------------------
 
-fn money(v: f64) -> String {
+pub(crate) fn money(v: f64) -> String {
     let neg = v < 0.0;
     let cents = (v.abs() * 100.0).round() as u128;
     let (d, c) = (cents / 100, cents % 100);
@@ -187,7 +187,7 @@ fn money(v: f64) -> String {
     format!("{}${out}.{c:02}", if neg { "-" } else { "" })
 }
 
-fn num(s: &str) -> Option<f64> {
+pub(crate) fn num(s: &str) -> Option<f64> {
     let t = s.trim().trim_start_matches('$').replace(',', "");
     let (t, mult) = if let Some(x) = t.strip_suffix('k') { (x.to_string(), 1e3) } else if let Some(x) = t.strip_suffix('m') { (x.to_string(), 1e6) } else { (t, 1.0) };
     t.trim().parse::<f64>().ok().map(|v| v * mult)

@@ -194,8 +194,11 @@ pub struct Unit {
 
 fn lookup_word(w: &str) -> Option<Unit> {
     let lw = w.to_lowercase();
+    // "kN", "mV", "kJ": a lowercase prefix followed by an uppercase symbol is
+    // never a plain two-letter unit such as "kn" (knots)
+    let prefixed_symbol = w.chars().count() == 2 && w.chars().next().is_some_and(|c| c.is_lowercase()) && w.chars().nth(1).is_some_and(|c| c.is_uppercase());
     // exact (case-insensitive for multi-letter names, sensitive for B/b)
-    for u in UNITS {
+    for u in UNITS.iter().filter(|_| !prefixed_symbol) {
         for n in u.names {
             let hit = if n.len() <= 2 { *n == w || (*n == lw && !matches!(w, "B" | "b" | "M" | "G" | "T" | "P")) } else { *n == lw };
             if hit {
@@ -211,7 +214,7 @@ fn lookup_word(w: &str) -> Option<Unit> {
                 continue;
             }
             for u in UNITS.iter().filter(|u| u.prefixable) {
-                let hit = if pre == *sym { u.names.iter().any(|n| *n == rest || (n.len() > 1 && *n == rest.to_lowercase())) } else { u.names.iter().any(|n| *n == rest) };
+                let hit = if pre == *sym { u.names.iter().any(|n| *n == rest || (n.len() > 1 && *n == rest.to_lowercase()) || (n.len() == 1 && rest.len() == 1 && *n != "b" && *n == rest.to_lowercase())) } else { u.names.iter().any(|n| *n == rest) };
                 // binary prefixes only for information units
                 if hit && (!sym.ends_with('i') || u.dim == BITS) {
                     let lname = if pre == *sym { format!("{long}{}", u.long) } else { format!("{long}{}", u.long) };
@@ -471,7 +474,7 @@ fn fmt_val(v: f64) -> String {
     fmt_float(v, 8)
 }
 
-fn conversion_table(si: f64, dim: &Dim, exclude: &str) -> Option<Pod> {
+pub(crate) fn conversion_table(si: f64, dim: &Dim, exclude: &str) -> Option<Pod> {
     let rows: Vec<Vec<Content>> = related(dim)
         .iter()
         .filter_map(|u| {

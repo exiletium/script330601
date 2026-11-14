@@ -54,6 +54,9 @@ pub fn handle(q: &Query) -> Option<Answer> {
     let body = re!(r"d\^?2\s*([a-z])\s*/\s*d([a-z])\^?2").replace_all(&body, "$1''").to_string();
     let body = re!(r"\bd([a-z])\s*/\s*d([a-z])\b").replace_all(&body, "$1'").to_string();
     // dependent variable: a letter followed by a prime
+    if re!(r"[a-zA-Z]{2,}'|'[a-zA-Z]").is_match(&body) {
+        return None; // an English possessive ("ohm's law"), not a derivative
+    }
     let dep = re!(r"([a-zA-Z])'+").captures(&body)?.get(1)?.as_str().to_string();
     if !(l.contains('\'') || l.contains("dy/d") || l.contains("differential")) {
         return None;

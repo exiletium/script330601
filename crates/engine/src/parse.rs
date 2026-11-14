@@ -300,6 +300,8 @@ const STOPWORDS: &[&str] = &[
     "is", "of", "to", "in", "it", "at", "on", "an", "as", "be", "do", "go", "he", "if", "me", "my", "no", "so", "up", "us", "we", "am", "the", "for", "are", "but", "you", "all", "can", "had", "her", "was", "one", "our", "out", "day", "get", "has", "him", "his", "how", "man", "new", "now", "old", "see", "way", "who", "did", "its", "let", "put",
     "say", "she", "too", "use", "why", "what", "with", "from", "this", "that", "when", "where", "which", "and", "not", "any", "many", "much", "does", "between", "than", "then", "there", "their", "about", "would", "make", "like", "time", "just", "know", "take", "into", "year", "your", "good", "some", "could", "them", "other",
     "only", "come", "over", "think", "also", "back", "after", "work", "first", "well", "even", "want", "because", "these", "give", "most",
+    "off", "per", "tip", "tax", "age", "big", "law", "bmi", "ohm", "ohms", "volt", "amp", "amps", "far", "long", "tall", "high", "wide", "deep", "old", "fast", "hot", "cold", "each", "both", "area", "side", "base", "born", "cost", "rate", "pay", "buy", "sell", "word", "name", "list", "show", "tell", "find", "does", "will",
+    "was", "were", "been", "have", "here", "more", "less", "same", "such", "very", "who", "whom", "whose", "yes", "yet", "may", "own", "two", "ten", "six", "km", "kg", "cm", "mm", "ml", "lb", "lbs", "oz", "ft", "mph", "kph", "usd", "eur", "gbp",
 ];
 
 fn func_lookup(name: &str) -> Option<&'static str> {

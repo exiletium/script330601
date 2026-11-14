@@ -187,6 +187,7 @@ const INVERSE_NAMES: &[(&str, &str)] = &[("asin", "sin"), ("acos", "cos"), ("ata
 const RECIPROCAL: &[(&str, &str)] = &[("cos", "sec"), ("sin", "csc"), ("tan", "cot"), ("cosh", "sech"), ("sinh", "csch"), ("tanh", "coth")];
 
 fn pretty_fn(name: &str) -> String {
+    let name = name.strip_prefix("user:").unwrap_or(name);
     match name {
         "ln" => "log",
         "gamma" => "Γ",

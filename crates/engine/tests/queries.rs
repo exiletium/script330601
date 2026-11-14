@@ -176,3 +176,86 @@ fn unknown_input_fails_gracefully() {
     assert!(!r.success);
     assert!(!r.suggestions.is_empty());
 }
+
+/// Every query in the natural-language corpus must be understood.
+#[test]
+fn natural_language_corpus() {
+    noesis::domains::live::set_online(false);
+    let text = include_str!("data/corpus.txt");
+    let failed: Vec<&str> = text.lines().map(str::trim).filter(|l| !l.is_empty() && !l.starts_with('#')).filter(|l| !noesis::query(l).success).collect();
+    assert!(failed.is_empty(), "not understood: {failed:#?}");
+}
+
+#[test]
+fn natural_language_math() {
+    assert!(short("1 + 2 + 3 + ... + 100").ends_with("= 5050"));
+    assert_eq!(short("absolute value of 3+4i"), "5");
+    assert!(short("average value of sin(x) from 0 to pi").contains("2/π"));
+    assert_eq!(short("pi to 4 digits"), "3.142");
+    assert_eq!(short("e to 10 decimal places"), "2.7182818285");
+    assert_eq!(short("sqrt(2) to 30 digits"), "1.41421356237309504880168872421");
+    assert!(short("solve x + y = 5 and x - y = 1").contains('3'));
+    assert!(short("complete the square x^2 + 6x + 5").contains("(x + 3)"));
+    assert!(short("sum of the first 100 odd numbers").ends_with("= 10000"));
+    assert!(short("is 28 a perfect number").to_lowercase().contains("yes"));
+    assert!(short("determinant of {{1,2},{3,4}}").contains("-2"));
+}
+
+#[test]
+fn geometry_and_physics_formulas() {
+    assert_eq!(short("area of a circle with radius 5"), "25 π");
+    assert_eq!(short("hypotenuse of a right triangle with legs 3 and 4"), "5");
+    assert_eq!(short("area of a triangle with sides 3, 4, 5"), "6");
+    assert_eq!(short("volume of a cone with radius 3 and height 4"), "12 π");
+    assert_eq!(short("pi/6 radians in degrees"), "30°");
+    assert_eq!(short("kinetic energy of 2 kg at 3 m/s"), "9 J");
+    assert_eq!(short("ohm's law 12 V 4 ohm"), "3 A");
+    assert!(short("escape velocity of earth").starts_with("11186"));
+    assert!(short("how much would 150 lb weigh on the moon").starts_with("24.8"));
+    assert!(short("quadratic formula").contains("4 a c"));
+    assert!(pod_text(&q("law of cosines a=3 b=4 C=60 degrees"), "Result").contains("3.60555"));
+}
+
+#[test]
+fn chemistry_calculations() {
+    assert_eq!(short("balance C3H8 + O2 -> CO2 + H2O"), "C₃H₈ + 5 O₂ → 3 CO₂ + 4 H₂O");
+    assert_eq!(short("balance KMnO4 + HCl -> KCl + MnCl2 + H2O + Cl2"), "2 KMnO₄ + 16 HCl → 2 KCl + 2 MnCl₂ + 8 H₂O + 5 Cl₂");
+    assert!(short("pH of 0.01 M HCl").starts_with("2 "));
+    assert!(short("pH of 0.1 M acetic acid").starts_with("2.87"));
+    assert!(short("pH of 0.05 M NaOH").starts_with("12.7"));
+    assert!(short("how many moles in 18 g of water").starts_with("0.999"));
+    assert!(short("molecules in 1 g of water").contains("10^22"));
+    assert!(short("boiling point of water").starts_with("100 °C"));
+    assert!(short("molarity of 5 g of NaCl in 250 mL of water").starts_with("0.342"));
+}
+
+#[test]
+fn everyday_calculations() {
+    assert_eq!(short("30% off 80"), "$56.00");
+    assert_eq!(short("simple interest on 500 at 3% for 2 years"), "$30.00");
+    assert_eq!(short("present value of 1000 in 5 years at 7%"), "$712.99");
+    assert!(short("percent change from 40 to 50").starts_with("+25%"));
+    assert_eq!(short("what percent of 80 is 20"), "25%");
+    assert!(short("is 2024 a leap year").starts_with("Yes"));
+    assert!(short("is 1900 a leap year").starts_with("No"));
+    assert_eq!(short("how many days in february 2024"), "29 days");
+    assert!(short("unix time 1700000000").contains("November 14, 2023"));
+    assert!(short("BMI 70 kg 175 cm").starts_with("22.9"));
+    assert_eq!(short("number of letters in mississippi"), "11");
+    assert_eq!(short("scrabble score of quiz"), "22 points");
+    assert_eq!(short("2 hours 30 minutes in seconds"), "9000 seconds");
+    assert_eq!(short("1 hour 15 minutes + 50 minutes"), "2 hours 5 minutes");
+    assert_eq!(short("500 calories in kJ"), "2.092 kilojoules");
+    assert_eq!(short("sos in morse code"), "... --- ...");
+}
+
+#[test]
+fn astronomy_and_world_facts() {
+    assert!(short("mass of the sun").starts_with("1.98847×10^30 kg"));
+    assert!(short("how far is the moon").starts_with("384,400 km"));
+    assert!(short("height of mount everest").starts_with("8848.86 m"));
+    assert!(short("largest country by area").starts_with("Russia"));
+    assert!(short("most populous country").starts_with("India"));
+    assert!(short("gdp of germany").contains("trillion"));
+    assert!(short("how long is a day on mars").starts_with("24.6"));
+}

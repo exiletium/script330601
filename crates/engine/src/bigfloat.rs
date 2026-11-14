@@ -128,7 +128,8 @@ pub fn decimal(e: &Expr, digits: usize) -> Option<String> {
     // cross-check against f64 to avoid branch mistakes
     if let Some(f) = e.to_f64_const() {
         let back: f64 = out.trim_end_matches('…').parse().ok()?;
-        if (back - f).abs() > 1e-9 * (1.0 + f.abs()) {
+        let tol = 1e-9f64.max(10f64.powi(1 - digits.min(300) as i32));
+        if (back - f).abs() > tol * (1.0 + f.abs()) {
             return None;
         }
     }

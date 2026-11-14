@@ -616,7 +616,13 @@ fn general_term(f: &Expr, x: &Expr) -> Option<Expr> {
 
 fn plot_command(q: &Query, body: &str, v1: Option<&str>, a1: Option<&str>, b1: Option<&str>) -> Option<Answer> {
     // several functions separated by "and" or commas
-    let parts: Vec<String> = if body.contains(" and ") { body.split(" and ").map(|s| s.to_string()).collect() } else { split_args(body).into_iter().filter(|p| !p.is_empty()).collect() };
+    let parts: Vec<String> = if body.contains(" and ") {
+        body.split(" and ").map(|s| s.to_string()).collect()
+    } else if !body.contains(',') && parse_e(body).is_some() {
+        vec![body.to_string()]
+    } else {
+        split_args(body).into_iter().filter(|p| !p.is_empty()).collect()
+    };
     let parts: Vec<String> = if parts.len() > 1 && parts.iter().all(|p| parse_e(p).is_some()) { parts } else { vec![body.to_string()] };
     let exprs: Vec<Expr> = parts.iter().filter_map(|p| ex(p)).collect();
     if exprs.is_empty() {
