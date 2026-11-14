@@ -949,7 +949,7 @@ fn node_inner(d: &D) -> (MathNode, u8) {
                 D::Sum(_) | D::Neg(_) => paren(node_p(body, 0)),
                 x => node_p(x, 5),
             };
-            (MathNode::Row(vec![sign, t("\u{2009}"), b, t("\u{2009}"), MathNode::Ident("d".into()), node_p(var, 9)]), 3)
+            (MathNode::Row(vec![sign, t("\u{2009}"), b, t("\u{2009}"), t("d"), node_p(var, 9)]), 3)
         }
         D::BigOp { sym, body, var, lo, hi } => {
             let lower = MathNode::Row(vec![node_p(var, 9), t("="), node_p(lo, 0)]);
