@@ -14,7 +14,10 @@ use crate::solve;
 use num_traits::{One, Signed, ToPrimitive, Zero};
 
 pub fn handle(q: &Query) -> Option<Answer> {
-    let parsed = parse::parse(&q.clean).ok()?;
+    // a bare function name means the function itself: "sin" -> sin(x)
+    const BARE: &[&str] = &["sin", "cos", "tan", "sec", "csc", "cot", "sinh", "cosh", "tanh", "arcsin", "arccos", "arctan", "asin", "acos", "atan", "ln", "log", "exp", "sqrt", "gamma", "erf", "abs", "floor", "ceil", "zeta", "sinc", "W"];
+    let input = if BARE.contains(&q.clean.trim()) { format!("{}(x)", q.clean.trim()) } else { q.clean.clone() };
+    let parsed = parse::parse(&input).ok()?;
     analyze(q, parsed)
 }
 
@@ -100,7 +103,8 @@ pub fn number_pods(p: &Parsed, opts: &Options) -> Vec<Pod> {
         pods.push(primary(pod("Result", "Result", math_digits(&approx, digits))));
     } else {
         pods.push(primary(pod("Result", "Result", math(&v))));
-        if !v.is_integer() && ptext(&approx) != ptext(&v) {
+        let gaussian_int = is_complex(&v) && crate::eval::const_c64(&v).map_or(false, |z| z.re.fract() == 0.0 && z.im.fract() == 0.0);
+        if !v.is_integer() && !gaussian_int && ptext(&approx) != ptext(&v) {
             let more = crate::bigfloat::decimal(&v, 50).map(|s| text(format!("{s}…"))).unwrap_or_else(|| math_digits(&approx, 15));
             pods.push(pod("DecimalApproximation", "Decimal approximation", more));
         }

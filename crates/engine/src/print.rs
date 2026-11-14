@@ -324,7 +324,8 @@ fn sum_d(v: &[Expr], fmt: &Fmt) -> D {
     }
     // keep "a + b i" order for complex numbers
     let complex_tail = terms.last().map_or(false, |t| t.has_const(K::I) && t.free_symbols().is_empty());
-    if !complex_tail {
+    let has_constant = terms.iter().any(|t| matches!(t, Sym(n) if &**n == "constant"));
+    if !complex_tail && !has_constant {
         ds = reorder_sign(ds);
     }
     D::Sum(ds)
