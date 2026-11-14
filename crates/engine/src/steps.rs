@@ -73,3 +73,16 @@ pub fn rollback(mark: usize) {
         }
     });
 }
+
+/// Insert a step at a position obtained from [`mark`] (used to put a rule's
+/// description before the sub-steps it produced).
+pub fn insert_at(mark: usize, text: impl Into<String>, math: Option<&Expr>) {
+    LOG.with(|l| {
+        if let Some(v) = l.borrow_mut().as_mut() {
+            if v.len() < 400 && mark <= v.len() {
+                let depth = DEPTH.with(|d| *d.borrow());
+                v.insert(mark, Step { text: text.into(), math: math.cloned(), depth });
+            }
+        }
+    });
+}

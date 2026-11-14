@@ -7,7 +7,9 @@ use crate::budget;
 use crate::expr::Expr::*;
 use crate::expr::*;
 use crate::poly::{self, QPoly};
+use crate::print::text;
 use crate::simplify;
+use crate::steps;
 use num_complex::Complex64;
 use num_integer::Integer;
 use num_traits::{One, ToPrimitive, Zero};
@@ -182,27 +184,48 @@ fn integ(e: &Expr, x: &Expr, depth: usize) -> Option<Expr> {
         return None;
     }
     if !e.has_sym(x) {
-        return Some(mul(vec![e.clone(), x.clone()]));
+        let r = mul(vec![e.clone(), x.clone()]);
+        if steps::enabled() {
+            steps::step(format!("The integral of the constant {} is {}:", text(&pretty(e)), text(&pretty(&r))), Some(&step_eq(e, x, &r)));
+        }
+        return Some(r);
     }
+    let m = steps::mark();
     if let Add(v) = e {
         let mut out = Vec::with_capacity(v.len());
         let mut ok = true;
-        for t in v {
-            match integ(t, x, depth) {
-                Some(r) => out.push(r),
-                None => {
-                    ok = false;
-                    break;
+        steps::nested(|| {
+            for t in v {
+                match integ(t, x, depth) {
+                    Some(r) => out.push(r),
+                    None => {
+                        ok = false;
+                        break;
+                    }
                 }
             }
-        }
+        });
         if ok {
-            return Some(add(out));
+            let r = add(out);
+            if steps::enabled() {
+                steps::insert_at(m, "Integrate the sum term by term:", Some(&step_eq(e, x, &r)));
+            }
+            return Some(r);
         }
+        steps::rollback(m);
     } else {
         let (c, r) = split_const(e, x);
         if !c.is_one() {
-            return Some(mul(vec![c, integ(&r, x, depth)?]));
+            let inner = steps::nested(|| integ(&r, x, depth));
+            let Some(inner) = inner else {
+                steps::rollback(m);
+                return None;
+            };
+            let res = mul(vec![c.clone(), inner]);
+            if steps::enabled() {
+                steps::insert_at(m, format!("Factor out the constant {}:", text(&pretty(&c))), Some(&step_eq(e, x, &res)));
+            }
+            return Some(res);
         }
     }
     if STACK.with(|s| s.borrow().contains(e)) {
@@ -210,73 +233,126 @@ fn integ(e: &Expr, x: &Expr, depth: usize) -> Option<Expr> {
     }
     STACK.with(|s| s.borrow_mut().push(e.clone()));
     let _g = Guard;
-    core(e, x, depth)
-}
-
-fn core(e: &Expr, x: &Expr, depth: usize) -> Option<Expr> {
-    if let Some(r) = table(e, x) {
-        return Some(r);
-    }
-    if let Some(r) = rational(e, x) {
-        return Some(r);
-    }
-    if let Some(r) = quad_denominator(e, x) {
-        return Some(r);
-    }
-    if let Some(r) = exp_trig(e, x) {
-        return Some(r);
-    }
-    if let Some(r) = sqrt_quadratic(e, x) {
-        return Some(r);
-    }
-    if let Some(r) = special(e, x, depth) {
-        return Some(r);
-    }
-    if depth <= 7 {
-        if let Some(r) = substitution(e, x, depth) {
-            return Some(r);
+    let m = steps::mark();
+    match steps::nested(|| core(e, x, depth)) {
+        Some((r, why)) => {
+            if steps::enabled() {
+                steps::insert_at(m, why, Some(&step_eq(e, x, &r)));
+            }
+            Some(r)
+        }
+        None => {
+            steps::rollback(m);
+            None
         }
     }
-    if let Some(r) = parts_poly(e, x, depth) {
-        return Some(r);
+}
+
+/// Internal substitution variables are shown as u.
+fn pretty(e: &Expr) -> Expr {
+    match e {
+        Sym(n) if n.starts_with(['\u{3be}', '\u{3c4}', '\u{3c1}', '\u{3b5}']) => sym("u"),
+        Add(v) => Add(v.iter().map(pretty).collect()),
+        Mul(v) => Mul(v.iter().map(pretty).collect()),
+        Pow(b, x) => Pow(Box::new(pretty(b)), Box::new(pretty(x))),
+        Func(n, a) => Func(n.clone(), a.iter().map(pretty).collect()),
+        Rel(op, a, b) => Rel(*op, Box::new(pretty(a)), Box::new(pretty(b))),
+        _ => e.clone(),
     }
-    if let Some(r) = parts_log(e, x, depth) {
-        return Some(r);
+}
+
+fn step_eq(e: &Expr, x: &Expr, r: &Expr) -> Expr {
+    pretty(&eq(raw_fn("Integral", vec![e.clone(), x.clone()]), r.clone()))
+}
+
+/// Antiderivative with a step-by-step explanation.
+pub fn integrate_explained(e: &Expr, x: &Expr) -> (Option<Expr>, Vec<steps::Step>) {
+    let (r, mut st) = steps::record(|| integrate(e, x));
+    if let Some(v) = &r {
+        st.push(steps::Step { text: "Add the constant of integration:".into(), math: Some(eq(raw_fn("Integral", vec![e.clone(), x.clone()]), add(vec![v.clone(), sym("constant")]))), depth: 0 });
     }
-    if let Some(r) = trig_methods(e, x, depth) {
-        return Some(r);
+    (r, st)
+}
+
+fn core(e: &Expr, x: &Expr, depth: usize) -> Option<(Expr, String)> {
+    let on = steps::enabled();
+    let d = |s: String| if on { s } else { String::new() };
+    let es = || text(&pretty(e));
+    if let Some(r) = table(e, x) {
+        return Some((r, d(format!("Use the standard integral of {}:", es()))));
+    }
+    if let Some(r) = rational(e, x) {
+        let pf = if on { simplify::apart(e, x).map(|a| format!(" Its partial fraction decomposition is {}.", text(&a))).unwrap_or_default() } else { String::new() };
+        return Some((r, d(format!("Integrate the rational function by partial fractions.{pf}"))));
+    }
+    if let Some(r) = quad_denominator(e, x) {
+        return Some((r, d("Complete the square in the quadratic denominator and use the arctangent / logarithm forms:".into())));
+    }
+    if let Some(r) = exp_trig(e, x) {
+        return Some((r, d("Integrate by parts twice (∫ e^(a x) sin(b x) dx and ∫ e^(a x) cos(b x) dx have closed forms):".into())));
+    }
+    if let Some(r) = sqrt_quadratic(e, x) {
+        return Some((r, d("Write the integrand as P(x)·sqrt(a x^2 + b x + c) and use the reduction formula for such integrals:".into())));
+    }
+    if let Some(r) = special(e, x, depth) {
+        let fname = ["erf", "erfi", "Si", "Ci", "Ei", "li", "fresnels", "fresnelc"].iter().find(|f| r.has_fn(f)).map(|f| match *f {
+            "erf" | "erfi" => "the error function",
+            "Si" => "the sine integral Si",
+            "Ci" => "the cosine integral Ci",
+            "Ei" => "the exponential integral Ei",
+            "li" => "the logarithmic integral li",
+            _ => "the Fresnel integrals",
+        });
+        return Some((r, d(format!("This integral is not elementary; it is expressed with {}:", fname.unwrap_or("a special function")))));
+    }
+    if let Some((r, u, dv)) = parts_poly(e, x, depth) {
+        return Some((r, d(format!("Integrate by parts, ∫ u dv = u v - ∫ v du, with u = {} and dv = {} dx:", text(&pretty(&u)), text(&pretty(&dv))))));
+    }
+    if depth <= 7 {
+        if let Some((r, u)) = substitution(e, x, depth) {
+            return Some((r, d(format!("Substitute u = {}, du = {} dx:", text(&pretty(&u)), text(&pretty(&simplify::simplify(&super::diff::diff(&u, x))))))));
+        }
+    }
+    if let Some((r, u, dv)) = parts_poly(e, x, depth) {
+        return Some((r, d(format!("Integrate by parts, ∫ u dv = u v - ∫ v du, with u = {} and dv = {} dx:", text(&pretty(&u)), text(&pretty(&dv))))));
+    }
+    if let Some((r, u, dv)) = parts_log(e, x, depth) {
+        return Some((r, d(format!("Integrate by parts, ∫ u dv = u v - ∫ v du, with u = {} and dv = {} dx:", text(&pretty(&u)), text(&pretty(&dv))))));
+    }
+    if let Some((r, how)) = trig_methods(e, x, depth) {
+        return Some((r, d(how)));
     }
     if let Some(r) = radical_subst(e, x, depth) {
-        return Some(r);
+        return Some((r, d("Rationalise the integrand with the substitution u = (a x + b)^(1/n):".into())));
     }
     if let Some(r) = euler_subst(e, x, depth) {
-        return Some(r);
+        return Some((r, d("Use an Euler substitution to rationalise the square root:".into())));
     }
     // rewrites
     let ex = simplify::expand(e);
     if ex != *e {
         if let Some(r) = integ(&ex, x, depth + 1) {
-            return Some(r);
+            return Some((r, d(format!("Expand the integrand to {}:", text(&pretty(&ex))))));
         }
     }
     if e.has_any_fn(&["sinh", "cosh", "tanh"]) {
         let r = simplify::expand(&simplify::rewrite_exp(e));
         if r != *e {
             if let Some(v) = integ(&r, x, depth + 2) {
-                return Some(v);
+                return Some((v, d("Rewrite the hyperbolic functions with exponentials:".into())));
             }
         }
     }
     let c = simplify::cancel(e);
     if c != *e && c != ex {
         if let Some(r) = integ(&c, x, depth + 1) {
-            return Some(r);
+            return Some((r, d(format!("Simplify the integrand to {}:", text(&pretty(&c))))));
         }
     }
     let p = simplify::power_simplify(e);
     if p != *e && p != c {
         if let Some(r) = integ(&p, x, depth + 2) {
-            return Some(r);
+            return Some((r, d(format!("Simplify the powers in the integrand to {}:", text(&pretty(&p))))));
         }
     }
     None
@@ -806,7 +882,7 @@ fn candidates(e: &Expr, x: &Expr, out: &mut Vec<Expr>) {
     }
 }
 
-fn substitution(e: &Expr, x: &Expr, depth: usize) -> Option<Expr> {
+fn substitution(e: &Expr, x: &Expr, depth: usize) -> Option<(Expr, Expr)> {
     let mut cands = Vec::new();
     candidates(e, x, &mut cands);
     let t = sym(&format!("\u{3be}{depth}"));
@@ -825,7 +901,7 @@ fn substitution(e: &Expr, x: &Expr, depth: usize) -> Option<Expr> {
             continue;
         }
         if let Some(big) = integ(&r, &t, depth + 1) {
-            return Some(big.subs(&t, u));
+            return Some((big.subs(&t, u), u.clone()));
         }
     }
     None
@@ -956,7 +1032,7 @@ fn invert(u: &Expr, t: &Expr, x: &Expr) -> Option<Expr> {
 // integration by parts
 // ---------------------------------------------------------------------------
 
-fn parts_poly(e: &Expr, x: &Expr, depth: usize) -> Option<Expr> {
+fn parts_poly(e: &Expr, x: &Expr, depth: usize) -> Option<(Expr, Expr, Expr)> {
     let Mul(v) = e else { return None };
     let (ps, gs): (Vec<Expr>, Vec<Expr>) = v.iter().cloned().partition(|t| poly::coeffs(t, x).is_some());
     if ps.is_empty() || gs.is_empty() {
@@ -976,12 +1052,12 @@ fn parts_poly(e: &Expr, x: &Expr, depth: usize) -> Option<Expr> {
     let dp = diff(&p, x);
     let rest = simplify::expand(&mul(vec![dp, big_g.clone()]));
     let r = integ(&rest, x, depth + 1)?;
-    Some(sub(mul(vec![p, big_g]), r))
+    Some((sub(mul(vec![p.clone(), big_g]), r), p, g))
 }
 
 const LOGLIKE: &[&str] = &["ln", "atan", "asin", "acos", "asinh", "acosh", "atanh", "erf", "erfc", "erfi", "Si", "Ci", "Ei", "li", "fresnels", "fresnelc"];
 
-fn parts_log(e: &Expr, x: &Expr, depth: usize) -> Option<Expr> {
+fn parts_log(e: &Expr, x: &Expr, depth: usize) -> Option<(Expr, Expr, Expr)> {
     let fs = e.factors();
     let is_loglike = |t: &Expr| match t {
         Func(name, _) => LOGLIKE.contains(&&**name) && t.has_sym(x),
@@ -997,14 +1073,14 @@ fn parts_log(e: &Expr, x: &Expr, depth: usize) -> Option<Expr> {
     let v = integ(&dv, x, depth + 1)?;
     let w = simplify::cancel(&mul(vec![v.clone(), diff(&u, x)]));
     let r = integ(&w, x, depth + 2)?;
-    Some(sub(mul(vec![u, v]), r))
+    Some((sub(mul(vec![u.clone(), v]), r), u, dv))
 }
 
 // ---------------------------------------------------------------------------
 // trigonometric integrands
 // ---------------------------------------------------------------------------
 
-fn trig_methods(e: &Expr, x: &Expr, depth: usize) -> Option<Expr> {
+fn trig_methods(e: &Expr, x: &Expr, depth: usize) -> Option<(Expr, String)> {
     if !e.has_any_fn(&["sin", "cos", "tan"]) {
         return None;
     }
@@ -1013,7 +1089,7 @@ fn trig_methods(e: &Expr, x: &Expr, depth: usize) -> Option<Expr> {
         let r = simplify::expand(&simplify::trig_reduce(e));
         if r != *e {
             if let Some(v) = integ(&r, x, depth + 1) {
-                return Some(v);
+                return Some((v, format!("Use trigonometric identities (power reduction, product-to-sum) to rewrite the integrand as {}:", text(&pretty(&r)))));
             }
         }
     }
@@ -1024,11 +1100,11 @@ fn trig_methods(e: &Expr, x: &Expr, depth: usize) -> Option<Expr> {
         });
         if r != *e {
             if let Some(v) = integ(&r, x, depth + 2) {
-                return Some(v);
+                return Some((v, "Write tan as sin/cos:".into()));
             }
         }
     }
-    weierstrass(e, x, depth)
+    weierstrass(e, x, depth).map(|r| (r, "Use the Weierstrass substitution u = tan(x/2), with sin(x) = 2u/(1 + u^2), cos(x) = (1 - u^2)/(1 + u^2), dx = 2 du/(1 + u^2):".to_string()))
 }
 
 fn weierstrass(e: &Expr, x: &Expr, depth: usize) -> Option<Expr> {

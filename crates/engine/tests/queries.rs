@@ -90,6 +90,17 @@ fn knowledge_domains() {
 }
 
 #[test]
+fn step_by_step() {
+    let r = q("integrate x^2 sin(x) dx");
+    let steps = pod_text(&r, "Steps");
+    assert!(steps.contains("Integrate by parts"), "{steps}");
+    let r = q("derivative of x^3 ln(x)");
+    assert!(pod_text(&r, "Steps").contains("product rule"));
+    let r = q("x^2 - 5x + 6 = 0");
+    assert!(pod_text(&r, "SolutionSteps").contains("quadratic formula"));
+}
+
+#[test]
 fn differential_equations() {
     assert_eq!(short("y'' + y = 0"), "y(x) = c_1 cos(x) + c_2 sin(x)");
     assert_eq!(short("y' = y, y(0) = 1"), "y(x) = e^x");

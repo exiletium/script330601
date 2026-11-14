@@ -1386,6 +1386,26 @@ pub fn calculus_pods(p: &Parsed, opts: &Options) -> Vec<Pod> {
     } else {
         calculus::doit(&e)
     };
+    // integration steps
+    if want_steps && st.is_empty() {
+        if let Func(n, a) = &e {
+            if &**n == "Integral" && (a.len() == 2 || a.len() == 4) && !result.has(&|q| matches!(q, Func(f, _) if &**f == "Integral")) {
+                let (big, mut s1) = calculus::integrate::integrate_explained(&a[0], &a[1]);
+                if let (Some(big), 4) = (big, a.len()) {
+                    s1.pop(); // no constant for definite integrals
+                    let at = |p: &Expr| crate::simplify::simplify(&big.subs(&a[1], p));
+                    if !a[2].is_inf() && !a[3].is_inf() && !a[2].is_neg_inf() && !a[3].is_neg_inf() {
+                        let (hi, lo) = (at(&a[3]), at(&a[2]));
+                        crate::steps::step(String::new(), None);
+                        s1.push(crate::steps::Step { text: format!("Evaluate the antiderivative at the bounds: F({}) - F({}) =", ptext(&a[3]), ptext(&a[2])), math: Some(sub(hi, lo)), depth: 0 });
+                    } else {
+                        s1.push(crate::steps::Step { text: "Take the limits of the antiderivative at the bounds:".into(), math: Some(result.clone()), depth: 0 });
+                    }
+                }
+                st = s1;
+            }
+        }
+    }
     let unevaluated = result.has(&|n| matches!(n, Func(name, _) if matches!(&**name, "Integral" | "Limit" | "Sum" | "Product")));
     if unevaluated {
         // explain why
