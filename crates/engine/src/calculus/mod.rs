@@ -6,6 +6,7 @@ pub mod limit;
 pub mod ode;
 pub mod series;
 pub mod sum;
+pub mod transforms;
 
 pub use diff::{diff, diff_n};
 pub use limit::{limit, Dir};

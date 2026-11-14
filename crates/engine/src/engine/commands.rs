@@ -136,6 +136,30 @@ pub fn handle(q: &Query) -> Option<Answer> {
         let h = raw_fn(holder, vec![f, sym(m[3].as_deref()?), bound(m[4].as_deref()?)?, bound(m[5].as_deref()?)?]);
         return holder_answer(h.clone(), d_of(&h), q);
     }
+    // ---------------------------------------------------- Laplace transforms
+    if let Some(m) = cap(re!(r"^(inverse )?laplace(?: transform)?\s+(?:of\s+)?(.+?)$")) {
+        let inverse = m[1].is_some();
+        let p = parse_e(m[2].as_deref()?)?;
+        let f = p.expr.clone();
+        let (from, to) = if inverse { (sym("s"), sym("t")) } else { (var_or_default(&f, if f.has_sym(&sym("t")) { Some("t") } else { None }), sym("s")) };
+        let r = if inverse { calculus::transforms::inverse_laplace(&f, &from, &to)? } else { calculus::transforms::laplace(&f, &from, &to)? };
+        let lhs = if inverse { raw_fn("user:ℒ^(-1)", vec![f.clone()]) } else { raw_fn("user:ℒ", vec![f.clone()]) };
+        let lhs = match lhs {
+            Func(n, a) => raw_fn(n.trim_start_matches("user:"), a),
+            other => other,
+        };
+        let title = if inverse { "Inverse Laplace transform" } else { "Laplace transform" };
+        let mut pods = vec![pod("Input", "Input", text(format!("{} of {} ({} → {})", title.to_lowercase(), ptext(&f), ptext(&from), ptext(&to)))), primary(pod("Result", title, math(&eq(lhs, r.clone()))))];
+        if inverse && r.free_symbols().len() <= 1 {
+            if let Some(pl) = pl::cartesian(std::slice::from_ref(&r), &to, Some((0.0, 10.0))) {
+                pods.push(pod("Plot", "Plot", plot(pl)));
+            }
+        }
+        if let Some(alt) = math::alternate_forms(&r, &[]).first() {
+            pods.push(pod("AlternateForm", "Alternate form", math(alt)));
+        }
+        return Some(Answer::new(title, pods));
+    }
     // ------------------------------------------------------------ series
     if let Some(m) = cap(re!(r"^(?:taylor|maclaurin|power)?\s*(?:series|expansion|series expansion)\s+(?:of\s+)?(.+?)(?:\s+(?:at|about|around)\s+([a-z])\s*=\s*(.+?))?(?:\s+(?:to|up to)\s+(?:order\s+)?(\d+))?$")) {
         let f = ex(m[1].as_deref()?)?;
