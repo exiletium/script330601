@@ -32,6 +32,7 @@ Type a calculation, an equation, a function, a question in plain English or a un
 | Chemistry | `iron`, `boiling point of mercury`, `molar mass of caffeine`, `molar mass of CuSO4·5H2O`, `H2SO4` (composition and mass fractions) |
 | Geography and time | `france`, `population of japan`, `tokyo`, `distance from Paris to London`, `time in Sydney` |
 | Dates and money | `what day was July 4, 1776`, `days until christmas`, `100 days from today`, `compound interest $1000 at 5% for 10 years compounded monthly`, `mortgage $300000 at 6.5% for 30 years`, `15% tip on $80` |
+| Live data (optional, online) | `weather in Paris` (current conditions and 7-day forecast), `100 usd to eur` (ECB rates and 30-day chart), `who was Ada Lovelace`, `what is photosynthesis` (encyclopedia summaries). Use `--offline` or the Settings toggle to disable network access. |
 | Logic | `p and q or not p`: truth table, satisfiability, normal form |
 
 ## How it compares with WolframAlpha
@@ -45,7 +46,7 @@ Noesis reproduces WolframAlpha's style of answer, pods with exact and approximat
 
 It is also more limited, and these limits are real:
 
-* **No curated live data.** WolframAlpha draws on a vast, continuously updated knowledge base: weather, finance, nutrition, people, films, sports. Noesis ships a small offline dataset (118 elements, about 250 countries, about 6,000 cities and a few dozen physical constants). Population figures come from GeoNames and are not live.
+* **Less curated data.** WolframAlpha draws on a vast, continuously updated, curated knowledge base. Noesis ships a small offline dataset (118 elements, about 250 countries, about 6,000 cities, physical constants). When online it also fetches weather (Open-Meteo), exchange rates (European Central Bank) and encyclopedia summaries (Wikipedia), but it does not have WolframAlpha's structured data on nutrition, sports, films, companies and so on.
 * **Narrower language understanding.** Noesis recognises the phrasings listed above and ordinary mathematical notation. It does not understand arbitrary English questions.
 * **A smaller computer algebra system.** Integration is heuristic: tables, substitution, parts, rational functions, Euler and Weierstrass substitutions and special functions (erf, Si, Ei, Fresnel). It is not a complete Risch implementation, so some elementary integrals that Mathematica finds will be missed. Every antiderivative is checked numerically before it is shown, so wrong answers are rejected rather than displayed. Factoring is over ℚ only, and high-degree polynomials fall back to numeric roots.
 * **Step-by-step solutions** cover derivatives, integrals (substitution, integration by parts, partial fractions, trigonometric identities and so on) and quadratic equations. Limits, sums and general equations do not have worked steps yet.
@@ -173,6 +174,7 @@ The suite covers parsing, simplification, factoring, calculus, solving, number t
 * Countries and cities: [GeoNames](https://www.geonames.org), licensed CC BY 4.0, via the `geonamescache` package.
 * Chemical elements: the [`mendeleev`](https://github.com/lmmentel/mendeleev) package, MIT licensed.
 * Physical constants: CODATA 2018 recommended values.
+* Live data, when enabled: [Open-Meteo](https://open-meteo.com) (CC BY 4.0), European Central Bank reference rates via [Frankfurter](https://frankfurter.dev), and [Wikipedia](https://en.wikipedia.org) summaries (CC BY-SA 4.0).
 * Fonts: DejaVu (Bitstream Vera licence, public-domain changes) and Liberation Serif (SIL Open Font License 1.1). Licence texts are in `crates/app/assets/fonts/`.
 
 `tools/build_data.py` regenerates the bundled JSON files.

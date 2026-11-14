@@ -201,6 +201,7 @@ fn handlers() -> Vec<(&'static str, Handler)> {
     v.extend(crate::domains::handlers());
     v.push(("commands", commands::handle));
     v.push(("math", math::handle));
+    v.push(("encyclopedia", crate::domains::live::fallback));
     v
 }
 

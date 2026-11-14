@@ -79,6 +79,12 @@ struct Saved {
     mode: Mode,
     device: String,
     digits: usize,
+    #[serde(default = "default_true")]
+    online: bool,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 pub struct App {
@@ -90,6 +96,7 @@ pub struct App {
     theme: ThemeChoice,
     device: String,
     digits: usize,
+    online: bool,
     sidebar_open: bool,
     search: String,
     search_open: bool,
@@ -143,6 +150,7 @@ impl App {
             theme: ThemeChoice::Dark,
             device: "auto".into(),
             digits: 6,
+            online: true,
             sidebar_open: true,
             search: String::new(),
             search_open: false,
@@ -161,9 +169,11 @@ impl App {
             app.mode = saved.mode;
             app.device = saved.device;
             app.digits = saved.digits.clamp(3, 30);
+            app.online = saved.online;
             app.next_id = app.sessions.iter().map(|s| s.id).max().unwrap_or(0) + 1;
         }
         noesis::compute::set_preference(&app.device);
+        noesis::domains::live::set_online(app.online);
         if let Ok(t) = std::env::var("NOESIS_THEME") {
             app.theme = if t == "light" { ThemeChoice::Light } else { ThemeChoice::Dark };
         }
@@ -186,7 +196,7 @@ impl App {
 
     fn save(&self) {
         let Some(path) = config_path() else { return };
-        let saved = Saved { sessions: self.sessions.iter().rev().take(200).rev().cloned().collect(), theme: self.theme, mode: self.mode, device: self.device.clone(), digits: self.digits };
+        let saved = Saved { sessions: self.sessions.iter().rev().take(200).rev().cloned().collect(), theme: self.theme, mode: self.mode, device: self.device.clone(), digits: self.digits, online: self.online };
         if let Some(dir) = path.parent() {
             let _ = std::fs::create_dir_all(dir);
         }
@@ -960,6 +970,10 @@ impl App {
                     }
                 }
             });
+            if ui.checkbox(&mut self.online, "Online data (weather, exchange rates, encyclopedia)").changed() {
+                noesis::domains::live::set_online(self.online);
+                self.save();
+            }
             ui.add_space(10.0);
             ui.label(RichText::new("Compute devices").color(pal.muted));
             let info = noesis::compute::info();

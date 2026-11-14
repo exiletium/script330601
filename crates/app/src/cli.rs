@@ -17,6 +17,7 @@ OPTIONS:
     --digits <N>       significant digits for decimals (default 6)
     --timeout <S>      time limit in seconds (default 20)
     --no-steps         skip step-by-step solutions
+    --offline          never use the network (no live weather, rates, encyclopedia)
     --svg <DIR>        write plots as SVG files into DIR
     --benchmark        measure CPU/GPU evaluation throughput
     --devices          show available compute devices
@@ -44,6 +45,7 @@ pub fn run(args: Vec<String>) -> i32 {
             "--json" => json = true,
             "--short" => short = true,
             "--no-steps" => opts.steps = false,
+            "--offline" => noesis::domains::live::set_online(false),
             "--device" => noesis::compute::set_preference(&it.next().unwrap_or_default()),
             "--digits" => opts.digits = it.next().and_then(|v| v.parse().ok()).unwrap_or(6),
             "--timeout" => opts.timeout = it.next().and_then(|v| v.parse().ok()).unwrap_or(20.0),

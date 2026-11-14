@@ -20,7 +20,8 @@ path = "src/bin/noesis-desktop.rs"
 required-features = ["gui"]
 
 [features]
-default = ["gui", "gpu"]
+default = ["gui", "gpu", "net"]
+net = ["noesis/net"]
 gui = ["dep:eframe"]
 gpu = ["noesis/gpu"]
 

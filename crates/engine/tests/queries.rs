@@ -3,6 +3,7 @@
 use noesis::engine::{content_text, QueryResult};
 
 fn q(input: &str) -> QueryResult {
+    noesis::domains::live::set_online(false);
     let r = noesis::query(input);
     assert!(r.success, "{input}: {:?}", r.error);
     r
@@ -130,8 +131,24 @@ fn differential_equations() {
     assert!(r.pods.iter().any(|p| p.id == "NumericSolution"));
 }
 
+/// Live data needs the network; run with NOESIS_TEST_NET=1.
+#[test]
+fn live_data() {
+    if std::env::var("NOESIS_TEST_NET").is_err() {
+        return;
+    }
+    noesis::domains::live::set_online(true);
+    let r = noesis::query("weather in Paris");
+    assert!(r.success && r.pods.iter().any(|p| p.id == "Current"), "{:?}", r.error);
+    let r = noesis::query("100 usd to eur");
+    assert!(r.short_answer().unwrap_or_default().ends_with("EUR"));
+    let r = noesis::query("who was Ada Lovelace");
+    assert!(r.short_answer().unwrap_or_default().contains("mathematician"));
+}
+
 #[test]
 fn unknown_input_fails_gracefully() {
+    noesis::domains::live::set_online(false);
     let r = noesis::query("qwzx blorp flim");
     assert!(!r.success);
     assert!(!r.suggestions.is_empty());
